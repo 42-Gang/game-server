@@ -2,7 +2,7 @@ import { Namespace, Socket } from 'socket.io';
 import * as console from 'node:console';
 import { joinRoomSchema, messageSchema } from './chat.schema.js';
 import { z } from 'zod';
-import { socketErrorHandler } from '../utils/errorHandler.js';
+// import { socketErrorHandler } from '../utils/errorHandler.js';
 import { socketMiddleware } from '../utils/middleware.js';
 
 export default function chatNamespace(namespace: Namespace) {

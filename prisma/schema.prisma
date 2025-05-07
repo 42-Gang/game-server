@@ -7,15 +7,64 @@ datasource db {
   url      = env("DB_URL")
 }
 
-model User {
-  id                   Int      @id @default(autoincrement())
-  name             String   @unique
-  email                String   @unique
-  password_hash        String
-  avatar_url           String?
-  two_factor_enabled   Boolean  @default(false)
-  created_at           DateTime @default(now())
-  updated_at           DateTime @updatedAt
+model Tournament {
+  id           Int       @id @default(autoincrement())
+  winnerId     Int?      
+  winner       User?     @relation("TournamentWinner", fields: [winnerId], references: [id])
+  gameMode     String    // "custom" or "auto"
+  roundSize    Int       // 2, 4, 8, 16 등
+  status       String    // "inprogress" or "finished"
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  @@map("User")
+  players      TournamentPlayer[]
+  matches      Match[]
+}
+
+model TournamentPlayer {
+  id           Int       @id @default(autoincrement())
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId Int
+  user         User       @relation(fields: [userId], references: [id])
+  userId       Int
+  createdAt    DateTime   @default(now())
+}
+
+model Match {
+  id              Int        @id @default(autoincrement())
+  tournament      Tournament @relation(fields: [tournamentId], references: [id])
+  tournamentId    Int
+
+  player1         User?      @relation("Player1", fields: [player1Id], references: [id])
+  player1Id       Int?
+  player2         User?      @relation("Player2", fields: [player2Id], references: [id])
+  player2Id       Int?
+
+  scorePlayer1    Int?
+  scorePlayer2    Int?
+  winner          User?      @relation("MatchWinner", fields: [winnerId], references: [id])
+  winnerId        Int?
+
+  round           String     // "round_8", "semi_final", "final" 등 문자열로 처리
+  status          String     // "inprogress", "finished"
+
+  previousMatch1  Match?     @relation("PreviousMatch1", fields: [previousMatch1Id], references: [id])
+  previousMatch1Id Int?
+  previousMatch2  Match?     @relation("PreviousMatch2", fields: [previousMatch2Id], references: [id])
+  previousMatch2Id Int?
+
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model User {
+  id        Int                  @id @default(autoincrement())
+  username  String
+  // 기타 필드...
+
+  tournamentPlayers TournamentPlayer[]
+  matchesAsPlayer1  Match[] @relation("Player1")
+  matchesAsPlayer2  Match[] @relation("Player2")
+  matchesWon        Match[] @relation("MatchWinner")
+  tournamentsWon    Tournament[] @relation("TournamentWinner")
 }

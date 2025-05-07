@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 
-import usersRoutes from './apis/users.route.js';
+import gamesRoutes from './apis/games.route.js';
 
 export default async function routeV1(fastify: FastifyInstance) {
-  fastify.register(usersRoutes);
+  fastify.register(gamesRoutes, { prefix: '/games' });
 }
