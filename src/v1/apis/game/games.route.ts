@@ -5,7 +5,7 @@ import { getHistoryParamsSchema, getHistoryResponseSchema } from './schemas/get-
 
 export default async function gameRoutes(fastify: FastifyInstance) {
   const gameController: GameController = fastify.diContainer.resolve('gameController');
-  
+
   const routes: Array<Route> = [
     {
       method: 'GET',

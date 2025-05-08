@@ -2,9 +2,8 @@ import { kafka } from '../../plugins/kafka.js';
 import { KafkaTopicHandler } from './consumers/kafka.topic.handler.js';
 // import MatchTopicHandler from './consumers/match.topic.handler.js';
 
-export async function startConsumer(
-//   matchTopicHandler: MatchTopicHandler,
-) {
+export async function startConsumer() {
+  //   matchTopicHandler: MatchTopicHandler,
   const consumer = kafka.consumer({ groupId: 'STATUS', sessionTimeout: 10000 });
   const handlers: KafkaTopicHandler[] = [
     // matchTopicHandler,

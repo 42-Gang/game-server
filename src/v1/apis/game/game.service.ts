@@ -11,9 +11,11 @@ export default class GameService {
     // PlayerListRepository
   ) {}
 
-  async getHistory(userId: number, params: z.infer<typeof getHistoryParamsSchema>): Promise<TypeOf<typeof getHistoryResponseSchema>> {
-    
-    console.log('repo: ', this.tournamentRepository); 
+  async getHistory(
+    userId: number,
+    params: z.infer<typeof getHistoryParamsSchema>,
+  ): Promise<TypeOf<typeof getHistoryResponseSchema>> {
+    console.log('repo: ', this.tournamentRepository);
 
     return {
       status: STATUS.SUCCESS,
