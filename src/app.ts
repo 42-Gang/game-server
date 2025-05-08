@@ -8,7 +8,7 @@ export default async function app(fastify: FastifyInstance) {
   setDecorate(fastify);
   setMiddleware(fastify);
 
-  fastify.register(routeV1, { prefix: '/users/v1' });
+  fastify.register(routeV1, { prefix: '/v1' });
 }
 
 function setErrorHandler(fastify: FastifyInstance) {
@@ -23,41 +23,50 @@ function setErrorHandler(fastify: FastifyInstance) {
 }
 
 function setMiddleware(fastify: FastifyInstance) {
-  fastify.addHook('onRequest', (request, reply, done) => {
+  fastify.addHook('onRequest', async (request, _reply) => {
+    const internal = request.headers['x-internal'];
     const authenticated = request.headers['x-authenticated'];
     const userId = request.headers['x-user-id'];
-    
-    if (authenticated === undefined || Array.isArray(authenticated)) {
-      request.authenticated = false;
-      request.userId = undefined;
+
+    request.internal = false;
+    if (internal !== undefined && !Array.isArray(internal) && internal === 'true') {
+      request.internal = true;
     }
 
-    if (userId === undefined || Array.isArray(userId)) {
+    if (authenticated === undefined || Array.isArray(authenticated)) {
       request.authenticated = false;
-      request.userId = undefined;
+      request.userId = -1;
+      return;
     }
-    
-    if (isNaN(Number(userId))) {
+
+    if (userId === undefined || Array.isArray(userId) || isNaN(Number(userId))) {
       request.authenticated = false;
-      request.userId = undefined;
+      request.userId = -1;
+      return;
     }
 
     if (authenticated === 'true') {
       request.authenticated = true;
-      request.userId = parseInt(userId as string , 10);
+      request.userId = parseInt(userId as string, 10);
     }
-
-    done();
   });
 }
 
 function setDecorate(fastify: FastifyInstance) {
   fastify.decorate('authenticate', async (request: FastifyRequest, reply: FastifyReply) => {
-    console.log(request.authenticated);
     if (!request.authenticated) {
       reply.code(401).send({
         status: STATUS.ERROR,
-        message: 'Unauthorized',
+        message: '인증되지 않은 요청입니다.',
+      });
+    }
+  });
+
+  fastify.decorate('internalOnly', async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!request.internal) {
+      return reply.status(403).send({
+        status: STATUS.ERROR,
+        message: '내부 접근만 허용됩니다.',
       });
     }
   });
