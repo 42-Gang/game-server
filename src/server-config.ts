@@ -75,7 +75,5 @@ export async function registerKafkaConsumer(diContainer: AwilixContainer) {
       injectionMode: 'CLASSIC',
     }),
   });
-  (async () => {
-    await diContainer.resolve('kafkaConsumer');
-  })();
+  await diContainer.resolve('kafkaConsumer');
 }

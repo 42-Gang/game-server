@@ -7,4 +7,6 @@ export const kafka = new Kafka({
 });
 export const producer = kafka.producer();
 
-producer.connect();
+(async () => {
+  await producer.connect();
+})();
