@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "client"
 }
 
 datasource db {
@@ -7,15 +8,62 @@ datasource db {
   url      = env("DB_URL")
 }
 
-model User {
-  id                   Int      @id @default(autoincrement())
-  name             String   @unique
-  email                String   @unique
-  password_hash        String
-  avatar_url           String?
-  two_factor_enabled   Boolean  @default(false)
-  created_at           DateTime @default(now())
-  updated_at           DateTime @updatedAt
+enum GameMode {
+  CUSTOM
+  AUTO
+}
 
-  @@map("User")
+enum TournamentRound {
+  ROUND_2
+  ROUND_4
+  ROUND_8
+  ROUND_16
+}
+
+enum Status {
+  INPROGRESS
+  FINISHED
+}
+
+model Tournament {
+  id     Int  @id @default(autoincrement())
+  winner Int?
+
+  mode   GameMode
+  round  TournamentRound
+  status Status
+
+  players TournamentPlayer[]
+  matches Match[]
+
+  @@map("tournament")
+}
+
+model TournamentPlayer {
+  id           Int      @id @default(autoincrement())
+  tournamentId Int
+  userId       Int
+  createdAt    DateTime @default(now())
+
+  Tournament Tournament @relation(fields: [tournamentId], references: [id])
+
+  @@map("tournamentPlayer")
+}
+
+model Match {
+  id           Int             @id @default(autoincrement())
+  tournamentId Int
+  tournament   Tournament      @relation(fields: [tournamentId], references: [id])
+  player1      Int?
+  player2      Int?
+  scorePlayer1 Int?
+  scorePlayer2 Int?
+  winner       Int?
+  round        TournamentRound
+  status       Status
+
+  previousMatch1Id Int?
+  previousMatch2Id Int?
+
+  @@map("match")
 }

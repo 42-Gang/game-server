@@ -1,5 +1,10 @@
 import { createServer, startServer } from './server-utils.js';
-import { configureServer, registerPlugins, setupGracefulShutdown } from './server-config.js';
+import {
+  configureServer,
+  registerKafkaConsumer,
+  registerPlugins,
+  setupGracefulShutdown,
+} from './server-config.js';
 import { createSocketServer } from './plugins/socket.js';
 
 async function init() {
@@ -11,6 +16,7 @@ async function init() {
   await startServer(server); // 서버 시작
 
   const socket = createSocketServer(server);
+  await registerKafkaConsumer(server.diContainer);
   await setupGracefulShutdown(server, socket); // 서버 종료 시그널 핸들러 등록
 }
 
