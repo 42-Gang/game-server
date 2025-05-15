@@ -5,5 +5,5 @@ import { handleWaitingConnection } from './waiting.handler.js';
 export function startWaitingNamespace(namespace: Namespace) {
   namespace.use(socketMiddleware);
 
-  namespace.on('connection', (socket: Socket) => handleWaitingConnection(socket));
+  namespace.on('connection', (socket: Socket) => handleWaitingConnection(namespace, socket));
 }
