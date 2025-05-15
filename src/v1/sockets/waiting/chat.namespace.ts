@@ -1,28 +1,18 @@
 import { Namespace, Socket } from 'socket.io';
-import * as console from 'node:console';
-import { z } from 'zod';
 import { socketMiddleware } from '../utils/middleware.js';
-import { joinRoomSchema, messageSchema } from './waiting.schema.js';
 
-export default function startChatNamespace(namespace: Namespace) {
+export function startChatNamespace(namespace: Namespace) {
   namespace.use(socketMiddleware);
 
   namespace.on('connection', (socket: Socket) => {
-    console.log(`🟢 [/chat] Connected: ${socket.id}`);
+    console.log(`🟢 [/waiting] Connected: ${socket.id}, ${socket.data.userId}`);
+  });
 
-    socket.on('join', (payload: z.infer<typeof joinRoomSchema>) => {
-      console.log(`🔗 ${socket.id} joined room ${payload.roomId}`);
-      socket.join(payload.roomId);
-      socket.to(payload.roomId).emit('join', `${socket.id} joined room ${payload.roomId}`);
-    });
+  namespace.on('disconnect', (socket: Socket) => {
+    console.log(`🔴 [/waiting] Disconnected: ${socket.id}`);
+  });
 
-    socket.on('message', (payload: z.infer<typeof messageSchema>) => {
-      console.log(`💬 ${socket.id} sent message to room ${payload.roomId}: ${payload.message}`);
-      socket.to(payload.roomId).emit('message', payload.message);
-    });
-
-    socket.on('disconnect', () => {
-      console.log(`🔴 [/chat] Disconnected: ${socket.id}`);
-    });
+  namespace.on('error', (error: Error) => {
+    console.error(`Error in chat namespace: ${error.message}`);
   });
 }
