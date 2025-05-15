@@ -1,6 +1,6 @@
-import { Socket } from 'socket.io';
+import { Namespace, Socket } from 'socket.io';
 
-export function handleWaitingConnection(socket: Socket) {
+export function handleWaitingConnection(namespace: Namespace, socket: Socket) {
   console.log(`🟢 [/waiting] Connected: ${socket.id}`);
 
   socket.on('disconnect', () => {
