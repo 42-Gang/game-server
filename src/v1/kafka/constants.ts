@@ -8,11 +8,11 @@ export const TOPICS = {
 };
 
 export const TOURNAMENT_EVENTS = {
-  CREATE: 'CREATE',
+  REQUEST: 'REQUEST',
   CREATED: 'CREATED',
 };
 
 export const MATCH_EVENTS = {
-  CREATE: 'CREATE',
+  REQUEST: 'REQUEST',
   CREATED: 'CREATED',
 };
