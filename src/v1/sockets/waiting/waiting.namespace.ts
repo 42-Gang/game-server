@@ -1,12 +1,11 @@
 import { Namespace, Socket } from 'socket.io';
 import { socketMiddleware } from '../utils/middleware.js';
+import { handleWaitingConnection } from './waiting.handler.js';
 
-export function startChatNamespace(namespace: Namespace) {
+export function startWaitingNamespace(namespace: Namespace) {
   namespace.use(socketMiddleware);
 
-  namespace.on('connection', (socket: Socket) => {
-    console.log(`🟢 [/waiting] Connected: ${socket.id}, ${socket.data.userId}`);
-  });
+  namespace.on('connection', (socket: Socket) => handleWaitingConnection(socket));
 
   namespace.on('disconnect', (socket: Socket) => {
     console.log(`🔴 [/waiting] Disconnected: ${socket.id}`);
