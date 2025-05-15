@@ -1,8 +1,11 @@
+import { FastifyBaseLogger } from 'fastify';
+
 export function socketErrorHandler<Args extends unknown[], Return>(
+  logger: FastifyBaseLogger,
   handler: (...args: Args) => Return | Promise<Return>,
 ): (...args: Args) => void {
   const handleError = (err: unknown) => {
-    console.error('please handle me', err);
+    logger.error(err, 'please handle me');
   };
 
   return (...args: Args): void => {
