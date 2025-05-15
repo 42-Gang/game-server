@@ -1,27 +1,24 @@
 import { kafka } from '../../plugins/kafka.js';
-import { KafkaTopicHandler } from './consumers/kafka.topic.handler.js';
-// import MatchTopicHandler from './consumers/match.topic.handler.js';
+import { KafkaTopicConsumer } from './consumers/kafka.topic.consumer.js';
+import TournamentTopicConsumer from './consumers/tournament.topic.consumer.js';
 
 export async function startConsumer() {
-  //   matchTopicHandler: MatchTopicHandler,
-  const consumer = kafka.consumer({ groupId: 'STATUS', sessionTimeout: 10000 });
-  const handlers: KafkaTopicHandler[] = [
-    // matchTopicHandler,
-  ];
+  const mainConsumer = kafka.consumer({ groupId: 'STATUS', sessionTimeout: 10000 });
+  const consumers: KafkaTopicConsumer[] = [new TournamentTopicConsumer()];
 
-  await consumer.connect();
+  await mainConsumer.connect();
 
-  for (const handler of handlers) {
-    await consumer.subscribe({ topic: handler.topic, fromBeginning: handler.fromBeginning });
+  for (const consumer of consumers) {
+    await mainConsumer.subscribe({ topic: consumer.topic, fromBeginning: consumer.fromBeginning });
   }
 
-  await consumer.run({
+  await mainConsumer.run({
     eachMessage: async ({ topic, message }) => {
       if (!message.value) {
         return console.warn(`Null message received on topic ${topic}`);
       }
 
-      const handler = handlers.find((h) => h.topic === topic);
+      const handler = consumers.find((h) => h.topic === topic);
       if (!handler) {
         return console.warn(`No handler found for topic ${topic}`);
       }

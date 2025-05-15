@@ -1,6 +1,6 @@
-import { KafkaTopicHandler } from './kafka.topic.handler.js';
+import { KafkaTopicConsumer } from './kafka.topic.consumer.js';
 
-export default class TournamentTopicHandler implements KafkaTopicHandler {
+export default class TournamentTopicConsumer implements KafkaTopicConsumer {
   topic = 'tournament';
   fromBeginning = false;
 
