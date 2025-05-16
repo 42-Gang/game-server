@@ -1,8 +1,8 @@
 import { KafkaTopicConsumer } from './kafka.topic.consumer.js';
-import { TOURNAMENT_EVENTS } from '../constants.js';
+import { TOPICS, TOURNAMENT_EVENTS } from '../constants.js';
 
 export default class TournamentTopicConsumer implements KafkaTopicConsumer {
-  topic = 'tournament';
+  topic = TOPICS.TOURNAMENT;
   fromBeginning = false;
 
   async handle(messageValue: string): Promise<void> {
