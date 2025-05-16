@@ -1,12 +1,12 @@
+import { Prisma, PrismaClient, Player } from '@prisma/client';
 import { PlayerRepositoryInterface } from '../interfaces/player.repository.interface.js';
-import { PrismaClient, Prisma, Player } from '@prisma/client';
 
 export default class PlayerRepository implements PlayerRepositoryInterface {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async create(data: Prisma.PlayerCreateInput, tx?: PrismaClient): Promise<Player> {
+  create(data: Prisma.PlayerCreateInput, tx?: Prisma.TransactionClient): Promise<Player> {
     const client = tx || this.prisma;
-    return await client.player.create({ data });
+    return client.player.create({ data });
   }
 
   async delete(id: number): Promise<void> {
