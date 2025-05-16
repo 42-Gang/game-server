@@ -1,5 +1,4 @@
 import { PlayerRepositoryInterface } from '../interfaces/player.repository.interface.js';
-import { undefined } from 'zod';
 import { PrismaClient, Prisma, Player } from '@prisma/client';
 
 export default class PlayerRepository implements PlayerRepositoryInterface {
