@@ -1,9 +1,14 @@
 import { producer } from '../../../plugins/kafka.js';
 import { TOPICS, TOURNAMENT_EVENTS } from '../constants.js';
+import {
+  tournamentModeType,
+  tournamentSizeType,
+} from '../../sockets/waiting/schemas/tournament.schema.js';
 
 type tournamentRequestProducerParams = {
-  tournamentSize: number;
+  mode: tournamentModeType;
   userIds: number[];
+  tournamentSize: tournamentSizeType;
 };
 
 export async function tournamentRequestProducer({
@@ -28,7 +33,7 @@ export async function tournamentRequestProducer({
 }
 
 type tournamentCreatedProducerParams = {
-  tournamentSize: number;
+  tournamentSize: tournamentSizeType;
   userIds: number[];
 };
 

@@ -1,7 +1,8 @@
 import { TypeOf, z } from 'zod';
+import { tournamentSizeSchema } from './tournament.schema.js';
 
 export type customJoinSchemaType = TypeOf<typeof customJoinSchema>;
 
 export const customJoinSchema = z.object({
-  tournamentSize: z.union([z.literal(2), z.literal(4), z.literal(8)]),
+  tournamentSize: tournamentSizeSchema,
 });
