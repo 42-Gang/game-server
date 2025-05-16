@@ -48,7 +48,7 @@ model Player {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  Tournament Tournament @relation(fields: [tournamentId], references: [id])
+  tournament Tournament @relation(fields: [tournamentId], references: [id])
 
   @@map("tournamentPlayer")
 }
@@ -67,7 +67,7 @@ model Match {
   nextMatch       Match?  @relation("NextMatch", fields: [nextMatchId], references: [id])
   previousMatches Match[] @relation("NextMatch")
 
-  Tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
   tournamentId Int?
 
   @@map("match")

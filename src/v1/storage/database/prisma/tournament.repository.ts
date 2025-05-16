@@ -4,7 +4,7 @@ import { Prisma, PrismaClient, Tournament } from '@prisma/client';
 export default class TournamentRepository implements TournamentRepositoryInterface {
   constructor(private readonly prisma: PrismaClient) {}
 
-  create(data: Prisma.TournamentCreateInput, ts?: PrismaClient): Promise<Tournament> {
+  create(data: Prisma.TournamentCreateInput, ts?: Prisma.TransactionClient): Promise<Tournament> {
     const client = ts || this.prisma;
     return client.tournament.create({ data });
   }
