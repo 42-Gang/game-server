@@ -5,7 +5,7 @@ export interface BaseRepositoryInterface<T, CreateInput, UpdateInput> {
 
   update(id: number, data: UpdateInput): Promise<T>;
 
-  delete(id: number): Promise<T>;
+  delete(id: number): Promise<void>;
 
   findAll(): Promise<T[]>;
 }
