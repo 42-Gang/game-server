@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/client"
 }
 
 datasource db {
@@ -12,7 +13,7 @@ enum GameMode {
   AUTO
 }
 
-enum TournamentRound {
+enum TournamentSize {
   ROUND_2
   ROUND_4
   ROUND_8
@@ -20,29 +21,32 @@ enum TournamentRound {
 }
 
 enum Status {
+  NOT_STARTED
   INPROGRESS
   FINISHED
 }
 
 model Tournament {
-  id     Int  @id @default(autoincrement())
-  winner Int?
+  id        Int      @id @default(autoincrement())
+  winner    Int?
+  mode      GameMode
+  size      Int
+  status    Status   @default(INPROGRESS)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  mode   GameMode
-  round  TournamentRound
-  status Status
-
-  players TournamentPlayer[]
+  players Player[]
   matches Match[]
 
   @@map("tournament")
 }
 
-model TournamentPlayer {
+model Player {
   id           Int      @id @default(autoincrement())
-  tournamentId Int
-  userId       Int
-  createdAt    DateTime @default(now())
+  tournamentId Int      @map("tournament_id")
+  userId       Int      @map("user_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   Tournament Tournament @relation(fields: [tournamentId], references: [id])
 
@@ -50,19 +54,21 @@ model TournamentPlayer {
 }
 
 model Match {
-  id           Int             @id @default(autoincrement())
-  tournamentId Int
-  tournament   Tournament      @relation(fields: [tournamentId], references: [id])
+  id           Int            @id @default(autoincrement())
   player1      Int?
   player2      Int?
-  scorePlayer1 Int?
-  scorePlayer2 Int?
+  player1Score Int?           @default(0) @map("player_1_score")
+  player2Score Int?           @default(0) @map("player_2_score")
   winner       Int?
-  round        TournamentRound
-  status       Status
+  round        TournamentSize
+  status       Status         @default(NOT_STARTED)
 
-  previousMatch1Id Int?
-  previousMatch2Id Int?
+  nextMatchId     Int?    @map("next_match_id")
+  nextMatch       Match?  @relation("NextMatch", fields: [nextMatchId], references: [id])
+  previousMatches Match[] @relation("NextMatch")
+
+  Tournament   Tournament? @relation(fields: [tournamentId], references: [id])
+  tournamentId Int?
 
   @@map("match")
 }
