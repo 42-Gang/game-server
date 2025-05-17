@@ -45,10 +45,10 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
   }
 
   private async requestTournament(message: requestTournamentMessageType) {
-    await this.createTornamentInDatabase(message);
+    await this.createTournamentInDatabase(message);
   }
 
-  private async createTornamentInDatabase(message: {
+  private async createTournamentInDatabase(message: {
     mode: 'AUTO' | 'CUSTOM';
     players: number[];
     size: 2 | 4 | 8 | 16;
