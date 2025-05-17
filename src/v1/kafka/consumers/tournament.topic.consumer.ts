@@ -56,29 +56,30 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
         level: 1,
       });
 
-      const leafNodes = await this.matchRepository.findManyByTournamentIdAndRound(
-        tournament.id,
-        tournament.size,
+      await this.assignPlayersToMatches(tournament, tx, players);
+    });
+  }
+
+  private async assignPlayersToMatches(
+    tournament: Tournament,
+    tx: Prisma.TransactionClient,
+    players: Player[],
+  ) {
+    const leafNodes = await this.matchRepository.findManyByTournamentIdAndRound(
+      tournament.id,
+      tournament.size,
+      tx,
+    );
+    for (let i = 0; i < players.length; i += 2) {
+      await this.matchRepository.update(
+        leafNodes[i / 2].id,
+        {
+          player1: players[i].id,
+          player2: players[i + 1].id,
+        },
         tx,
       );
-
-      if (leafNodes.length !== tournament.size) {
-        throw new Error(
-          `토너먼트 리프 노드 수가 예상과 다릅니다. 예상: ${tournament.size}, 실제: ${leafNodes.length}`,
-        );
-      }
-
-      for (let i = 0; i < players.length; i += 2) {
-        await this.matchRepository.update(
-          leafNodes[i / 2].id,
-          {
-            player1: players[i].id,
-            player2: players[i + 1].id,
-          },
-          tx,
-        );
-      }
-    });
+    }
   }
 
   private async createPlayers(
