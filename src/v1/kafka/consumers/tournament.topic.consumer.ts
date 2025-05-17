@@ -46,36 +46,8 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
 
   private async requestTournament(message: requestTournamentMessageType) {
     this.prisma.$transaction(async (tx) => {
-      const tournament = await this.tournamentRepository.create(
-        {
-          winner: null,
-          mode: message.mode,
-          size: message.size,
-        },
-        tx,
-      );
-
-      console.log(
-        `토너먼트 생성 완료: ${tournament.id}, 모드: ${message.mode}, 사이즈: ${message.size}`,
-      );
-
-      const players: Player[] = await Promise.all(
-        message.players.map((userId) =>
-          this.playerRepository.create(
-            {
-              tournament: {
-                connect: {
-                  id: tournament.id,
-                },
-              },
-              userId: userId,
-            },
-            tx,
-          ),
-        ),
-      );
-
-      console.log(`토너먼트 참가자 생성 완료: ${players.map((player) => player.userId)}`);
+      const tournament = await this.createTournament(message, tx);
+      const players = await this.createPlayers(message, tournament, tx);
 
       await this.createTournamentMatches({
         tournament,
@@ -107,6 +79,42 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
         );
       }
     });
+  }
+
+  private async createPlayers(
+    message: requestTournamentMessageType,
+    tournament: Tournament,
+    tx: Prisma.TransactionClient,
+  ) {
+    return Promise.all(
+      message.players.map((userId) =>
+        this.playerRepository.create(
+          {
+            tournament: {
+              connect: {
+                id: tournament.id,
+              },
+            },
+            userId: userId,
+          },
+          tx,
+        ),
+      ),
+    );
+  }
+
+  private async createTournament(
+    message: requestTournamentMessageType,
+    tx: Prisma.TransactionClient,
+  ) {
+    return this.tournamentRepository.create(
+      {
+        winner: null,
+        mode: message.mode,
+        size: message.size,
+      },
+      tx,
+    );
   }
 
   private async createTournamentMatches({
