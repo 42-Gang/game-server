@@ -9,11 +9,6 @@ export default class MatchRepository implements MatchRepositoryInterface {
     return client.match.create({ data });
   }
 
-  create2(data: Prisma.MatchUncheckedCreateInput, tx?: Prisma.TransactionClient): Promise<Match> {
-    const client = tx || this.prisma;
-    return client.match.create({ data });
-  }
-
   async delete(id: number): Promise<void> {
     await this.prisma.match.delete({ where: { id } });
   }
@@ -29,5 +24,21 @@ export default class MatchRepository implements MatchRepositoryInterface {
   update(id: number, data: Prisma.MatchUpdateInput, tx?: Prisma.TransactionClient): Promise<Match> {
     const client = tx || this.prisma;
     return client.match.update({ where: { id }, data });
+  }
+
+  async findManyByTournamentIdAndRound(
+    tournamentId: number,
+    round: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Match[]> {
+    const client = tx || this.prisma;
+    return client.match.findMany({
+      where: {
+        tournament: {
+          id: tournamentId,
+        },
+        round: round,
+      },
+    });
   }
 }

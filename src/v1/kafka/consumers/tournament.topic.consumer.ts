@@ -6,7 +6,7 @@ import {
   requestTournamentMessageType,
 } from '../schemas/tournament.topic.schema.js';
 import { PlayerRepositoryInterface } from '../../storage/database/interfaces/player.repository.interface.js';
-import { PrismaClient, Tournament, Prisma, Match } from '@prisma/client';
+import { PrismaClient, Tournament, Prisma, Match, Player } from '@prisma/client';
 import MatchRepositoryInterface from '../../storage/database/interfaces/match.repository.interface.js';
 
 interface tournamentCreateParams {
@@ -59,14 +59,19 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
         `토너먼트 생성 완료: ${tournament.id}, 모드: ${message.mode}, 사이즈: ${message.size}`,
       );
 
-      const players = await Promise.all(
+      const players: Player[] = await Promise.all(
         message.players.map((userId) =>
-          tx.player.create({
-            data: {
-              tournamentId: tournament.id,
-              userId,
+          this.playerRepository.create(
+            {
+              tournament: {
+                connect: {
+                  id: tournament.id,
+                },
+              },
+              userId: userId,
             },
-          }),
+            tx,
+          ),
         ),
       );
 
@@ -79,14 +84,11 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
         level: 1,
       });
 
-      const leafNodes = await tx.match.findMany({
-        where: {
-          tournament: {
-            id: tournament.id,
-          },
-          round: tournament.size,
-        },
-      });
+      const leafNodes = await this.matchRepository.findManyByTournamentIdAndRound(
+        tournament.id,
+        tournament.size,
+        tx,
+      );
 
       if (leafNodes.length !== tournament.size) {
         throw new Error(
