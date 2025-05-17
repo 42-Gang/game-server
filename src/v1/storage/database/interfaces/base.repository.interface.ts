@@ -5,7 +5,7 @@ export interface BaseRepositoryInterface<T, CreateInput, UpdateInput> {
 
   create(data: CreateInput, tx?: Prisma.TransactionClient): Promise<T>;
 
-  update(id: number, data: UpdateInput): Promise<T>;
+  update(id: number, data: UpdateInput, tx?: Prisma.TransactionClient): Promise<T>;
 
   delete(id: number): Promise<void>;
 

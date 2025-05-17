@@ -2,9 +2,9 @@ import { kafka } from '../../plugins/kafka.js';
 import { KafkaTopicConsumer } from './consumers/kafka.topic.consumer.js';
 import TournamentTopicConsumer from './consumers/tournament.topic.consumer.js';
 
-export async function startConsumer() {
+export async function startConsumer(tournamentTopicConsumer: TournamentTopicConsumer) {
   const mainConsumer = kafka.consumer({ groupId: 'STATUS', sessionTimeout: 10000 });
-  const consumers: KafkaTopicConsumer[] = [new TournamentTopicConsumer()];
+  const consumers: KafkaTopicConsumer[] = [tournamentTopicConsumer];
 
   await mainConsumer.connect();
 

@@ -1,21 +1,38 @@
 import { KafkaTopicConsumer } from './kafka.topic.consumer.js';
 import { TOPICS, TOURNAMENT_EVENTS } from '../constants.js';
+import TournamentRepositoryInterface from '../../storage/database/interfaces/tournament.repository.interface.js';
+import {
+  requestTournamentMessageSchema,
+  requestTournamentMessageType,
+} from '../schemas/tournament.topic.schema.js';
+import { PlayerRepositoryInterface } from '../../storage/database/interfaces/player.repository.interface.js';
+import { PrismaClient, Tournament, Prisma, Match } from '@prisma/client';
+import MatchRepositoryInterface from '../../storage/database/interfaces/match.repository.interface.js';
+
+interface tournamentCreateParams {
+  tx: Prisma.TransactionClient;
+  tournament: Tournament;
+  level: number;
+  size: number;
+}
 
 export default class TournamentTopicConsumer implements KafkaTopicConsumer {
   topic = TOPICS.TOURNAMENT;
   fromBeginning = false;
 
+  constructor(
+    private readonly tournamentRepository: TournamentRepositoryInterface,
+    private readonly playerRepository: PlayerRepositoryInterface,
+    private readonly matchRepository: MatchRepositoryInterface,
+    private readonly prisma: PrismaClient,
+  ) {}
+
   async handle(messageValue: string): Promise<void> {
     const parsedMessage = JSON.parse(messageValue);
 
     if (parsedMessage.eventType == TOURNAMENT_EVENTS.REQUEST) {
-      /** TODO: Database에 토너먼트 테이블 생성
-       * 1. 토너먼트를 생성.
-       * 2. 참가자를 등록.
-       * 3. 매치 정보들 생성.
-       * 4. 매치에 사용자 배치.
-       * 5. redis 에 토너먼트 방 정보 저장.
-       */
+      const message = requestTournamentMessageSchema.parse(parsedMessage);
+      await this.requestTournament(message);
 
       return;
     }
@@ -25,5 +42,122 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
        */
       return;
     }
+  }
+
+  private async requestTournament(message: requestTournamentMessageType) {
+    this.prisma.$transaction(async (tx) => {
+      const tournament = await this.tournamentRepository.create(
+        {
+          winner: null,
+          mode: message.mode,
+          size: message.size,
+        },
+        tx,
+      );
+
+      console.log(
+        `토너먼트 생성 완료: ${tournament.id}, 모드: ${message.mode}, 사이즈: ${message.size}`,
+      );
+
+      const players = await Promise.all(
+        message.players.map((userId) =>
+          tx.player.create({
+            data: {
+              tournamentId: tournament.id,
+              userId,
+            },
+          }),
+        ),
+      );
+
+      console.log(`토너먼트 참가자 생성 완료: ${players.map((player) => player.userId)}`);
+
+      await this.createTournamentMatches({
+        tournament,
+        size: message.size,
+        tx,
+        level: 1,
+      });
+
+      const leafNodes = await tx.match.findMany({
+        where: {
+          tournament: {
+            id: tournament.id,
+          },
+          round: tournament.size,
+        },
+      });
+
+      if (leafNodes.length !== tournament.size) {
+        throw new Error(
+          `토너먼트 리프 노드 수가 예상과 다릅니다. 예상: ${tournament.size}, 실제: ${leafNodes.length}`,
+        );
+      }
+
+      for (let i = 0; i < players.length; i += 2) {
+        await this.matchRepository.update(
+          leafNodes[i / 2].id,
+          {
+            player1: players[i].id,
+            player2: players[i + 1].id,
+          },
+          tx,
+        );
+      }
+    });
+  }
+
+  private async createTournamentMatches({
+    tournament,
+    size,
+    tx,
+    level,
+  }: tournamentCreateParams): Promise<Match | null> {
+    if (size < level) {
+      return null;
+    }
+
+    const tournamentId = tournament.id;
+
+    const match = await this.matchRepository.create(
+      {
+        tournament: {
+          connect: {
+            id: tournamentId,
+          },
+        },
+        round: level,
+      },
+      tx,
+    );
+
+    const previousMatches = [
+      await this.createTournamentMatches({
+        tournament,
+        size,
+        tx,
+        level: level * 2,
+      }),
+      await this.createTournamentMatches({
+        tournament,
+        size,
+        tx,
+        level: level * 2,
+      }),
+    ];
+
+    if (previousMatches[0] !== null && previousMatches[1] !== null) {
+      await this.matchRepository.update(
+        match.id,
+        {
+          previousMatches: {
+            connect: [{ id: previousMatches[0].id }, { id: previousMatches[1].id }],
+          },
+        },
+        tx,
+      );
+    }
+
+    return match;
   }
 }

@@ -21,7 +21,12 @@ export default class TournamentRepository implements TournamentRepositoryInterfa
     return this.prisma.tournament.findUnique({ where: { id } });
   }
 
-  update(id: number, data: Prisma.TournamentUpdateInput): Promise<Tournament> {
-    return this.prisma.tournament.update({ where: { id }, data });
+  update(
+    id: number,
+    data: Prisma.TournamentUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Tournament> {
+    const client = tx || this.prisma;
+    return client.tournament.update({ where: { id }, data });
   }
 }

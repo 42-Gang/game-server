@@ -49,25 +49,25 @@ model Player {
 
   tournament Tournament @relation(fields: [tournamentId], references: [id])
 
-  @@map("tournamentPlayer")
+  @@map("player")
 }
 
 model Match {
-  id           Int            @id @default(autoincrement())
+  id           Int    @id @default(autoincrement())
   player1      Int?
   player2      Int?
-  player1Score Int?           @default(0) @map("player_1_score")
-  player2Score Int?           @default(0) @map("player_2_score")
+  player1Score Int?   @default(0) @map("player_1_score")
+  player2Score Int?   @default(0) @map("player_2_score")
   winner       Int?
-  round        TournamentSize
-  status       Status         @default(NOT_STARTED)
+  round        Int
+  status       Status @default(NOT_STARTED)
 
   nextMatchId     Int?    @map("next_match_id")
   nextMatch       Match?  @relation("NextMatch", fields: [nextMatchId], references: [id])
   previousMatches Match[] @relation("NextMatch")
 
-  tournament   Tournament? @relation(fields: [tournamentId], references: [id])
-  tournamentId Int?
+  tournamentId Int        @map("tournament_id")
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
 
   @@map("match")
 }
