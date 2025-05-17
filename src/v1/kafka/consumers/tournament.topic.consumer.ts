@@ -45,7 +45,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
   }
 
   private async requestTournament(message: requestTournamentMessageType) {
-    this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       const tournament = await this.createTournament(message, tx);
       const players = await this.createPlayers(message, tournament, tx);
 
