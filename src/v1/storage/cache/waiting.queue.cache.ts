@@ -2,44 +2,52 @@ import { Redis } from 'ioredis';
 import { FastifyBaseLogger } from 'fastify';
 
 export default class WaitingQueueCache {
-  private readonly waitingQueueRedisKey;
+  private readonly WAITING_QUEUE = `waiting-queue`;
 
   constructor(
     private readonly redisClient: Redis,
     private readonly logger: FastifyBaseLogger,
     private readonly tournamentSize: number,
-  ) {
-    this.waitingQueueRedisKey = `waiting-queue:${this.tournamentSize}`;
+  ) {}
+
+  getKey(tournamentSize: number): string {
+    return `${this.WAITING_QUEUE}:${tournamentSize}`;
   }
 
-  async addToQueue(userId: number): Promise<void> {
+  async addToQueue(tournamentSize: number, userId: number): Promise<void> {
     this.logger.info(`Adding user ${userId} to waiting queue`);
-    await this.redisClient.rpush(this.waitingQueueRedisKey, userId);
+    const key = this.getKey(tournamentSize);
+
+    await this.redisClient.rpush(key, userId);
   }
 
   getTournamentSize(): number {
     return this.tournamentSize;
   }
 
-  async canStartGame(): Promise<boolean> {
-    const queueLength = await this.getQueueLength();
+  async canStartGame(tournamentSize: number): Promise<boolean> {
+    const queueLength = await this.getQueueLength(tournamentSize);
     return this.tournamentSize <= queueLength;
   }
 
-  async getQueueLength(): Promise<number> {
-    const queueLength = await this.redisClient.llen(this.waitingQueueRedisKey);
+  async getQueueLength(tournamentSize: number): Promise<number> {
+    const key = this.getKey(tournamentSize);
+
+    const queueLength = await this.redisClient.llen(key);
     this.logger.info(`Current queue length: ${queueLength}`);
     return queueLength;
   }
 
-  async popForGame(): Promise<number[]> {
-    if (!(await this.canStartGame())) {
+  async popForGame(tournamentSize: number): Promise<number[]> {
+    if (!(await this.canStartGame(tournamentSize))) {
       throw new Error('Not enough users in the queue to start a game');
     }
 
+    const key = this.getKey(tournamentSize);
+
     const users: number[] = [];
     for (let i = 0; i < this.tournamentSize; i++) {
-      const userId = await this.redisClient.lpop(this.waitingQueueRedisKey);
+      const userId = await this.redisClient.lpop(key);
       if (!userId) throw new Error('No more users in the queue');
       users.push(Number(userId));
     }
