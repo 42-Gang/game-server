@@ -7,7 +7,6 @@ export default class WaitingQueueCache {
   constructor(
     private readonly redisClient: Redis,
     private readonly logger: FastifyBaseLogger,
-    private readonly tournamentSize: number,
   ) {}
 
   getQueueKey(tournamentSize: number): string {
@@ -21,13 +20,9 @@ export default class WaitingQueueCache {
     await this.redisClient.rpush(key, userId);
   }
 
-  getTournamentSize(): number {
-    return this.tournamentSize;
-  }
-
   async isQueueReady(tournamentSize: number): Promise<boolean> {
     const queueLength = await this.getCurrentQueueSize(tournamentSize);
-    return this.tournamentSize <= queueLength;
+    return tournamentSize <= queueLength;
   }
 
   async getCurrentQueueSize(tournamentSize: number): Promise<number> {
@@ -46,7 +41,7 @@ export default class WaitingQueueCache {
     const key = this.getQueueKey(tournamentSize);
 
     const users: number[] = [];
-    for (let i = 0; i < this.tournamentSize; i++) {
+    for (let i = 0; i < tournamentSize; i++) {
       const userId = await this.redisClient.lpop(key);
       if (!userId) throw new Error('No more users in the queue');
       users.push(Number(userId));

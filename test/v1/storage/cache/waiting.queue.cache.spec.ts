@@ -15,17 +15,13 @@ describe('WaitingQueueCache', () => {
     loggerMock = {
       info: vi.fn(),
     };
-    cache = new WaitingQueueCache(redisMock, loggerMock, 4);
+    cache = new WaitingQueueCache(redisMock, loggerMock);
   });
 
   it('addToQueue: 유저를 큐에 추가한다', async () => {
     await cache.enqueueUser(4, 123);
     expect(redisMock.rpush).toHaveBeenCalledWith('waiting-queue:4', 123);
     expect(loggerMock.info).toHaveBeenCalledWith('Adding user 123 to waiting queue');
-  });
-
-  it('getTournamentSize: 토너먼트 크기를 반환한다', () => {
-    expect(cache.getTournamentSize()).toBe(4);
   });
 
   it('getQueueLength: 큐 길이를 반환한다', async () => {
