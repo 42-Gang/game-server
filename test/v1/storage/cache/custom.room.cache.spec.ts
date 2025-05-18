@@ -21,6 +21,7 @@ describe('CustomRoomCache', () => {
     });
 
     const room = await cache.getRoomInfo(roomId);
+    await cache.deleteRoom(roomId);
     expect(room).toEqual({
       hostId: 1,
       maxPlayers: 4,
@@ -80,7 +81,6 @@ describe('CustomRoomCache', () => {
     await cache.addInvitedUserToRoom(roomId, 2);
     await cache.addUserToRoom(roomId, 2);
     const players = await cache.getUsersInRoom(roomId);
-
     await cache.deleteRoom(roomId);
 
     expect(players).toEqual([1, 2]);
