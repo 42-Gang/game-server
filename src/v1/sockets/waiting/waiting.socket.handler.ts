@@ -25,9 +25,10 @@ export default class WaitingSocketHandler {
     if (await this.waitingQueueCache.isQueueReady(tournamentSize)) {
       const userIds = await this.waitingQueueCache.popUsersForMatch(tournamentSize);
       await tournamentRequestProducer({
-        tournamentSize,
+        size: tournamentSize,
         mode: 'AUTO',
-        userIds,
+        players: userIds,
+        timestamp: new Date().toISOString(),
       });
       this.logger.info(`Tournament request sent for size ${tournamentSize} with users: ${userIds}`);
     }
