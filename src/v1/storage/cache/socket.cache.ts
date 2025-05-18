@@ -9,7 +9,7 @@ export default class SocketCache {
 
   async setSocketId(input: { userId: number; socketId: string; namespace: string }): Promise<void> {
     const key = this.getKey(input.namespace, input.userId);
-    await this.redisClient.set(key, input.socketId);
+    await this.redisClient.set(key, input.socketId, 'EX', 3600);
   }
 
   async getSocketId(input: { userId: number; namespace: string }): Promise<string | null> {

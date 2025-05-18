@@ -1,4 +1,10 @@
-export const AUTO = {
-  JOIN: 'auto-join',
-  START: 'auto-start',
+export const SOCKET_EVENTS = {
+  AUTO: {
+    JOIN: 'auto-join',
+  },
+
+  TOURNAMENT: {
+    REQUEST: 'tournament-request',
+    CREATED: 'tournament-created',
+  },
 };

@@ -11,6 +11,9 @@ import { PrismaClient, Tournament, Prisma, Match, Player } from '@prisma/client'
 import MatchRepositoryInterface from '../../storage/database/interfaces/match.repository.interface.js';
 import { FastifyBaseLogger } from 'fastify';
 import { Namespace } from 'socket.io';
+import SocketCache from '../../storage/cache/socket.cache.js';
+import { SOCKET_EVENTS } from '../../sockets/waiting/waiting.event.js';
+import { tournamentCreatedProducer } from '../producers/tournament.producer.js';
 
 interface tournamentCreateParams {
   tx: Prisma.TransactionClient;
@@ -30,6 +33,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     private readonly prisma: PrismaClient,
     private readonly logger: FastifyBaseLogger,
     private readonly waitingNamespace: Namespace,
+    private readonly socketCache: SocketCache,
   ) {}
 
   async handle(messageValue: string): Promise<void> {
@@ -44,16 +48,40 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
       return;
     }
     if (parsedMessage.eventType === TOURNAMENT_EVENTS.CREATED) {
-      /** TODO: Redis에 토너먼트 방 정보 저장 및 초기화
-       * 1. 접속해야할 토너먼트 ID를 사용자들에게 전달.
-       */
+      const message = createdTournamentMessageSchema.parse(parsedMessage);
+
+      this.logger.info(message, `토너먼트 생성 완료:`);
+      const socketIds = await Promise.all(
+        message.players.map((playerId) => {
+          return this.socketCache.getSocketId({
+            namespace: 'waiting',
+            userId: playerId,
+          });
+        }),
+      );
+
+      this.logger.info(socketIds, `토너먼트 생성 완료: 소켓 ID`);
+
+      for (const socketId of socketIds) {
+        if (socketId) {
+          this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.TOURNAMENT.CREATED, message);
+        }
+      }
       return;
     }
   }
 
   private async requestTournament(message: requestTournamentMessageType) {
-    await this.createTournamentInDatabase(message);
+    const tournament = await this.createTournamentInDatabase(message);
     // TODO: Redis에 토너먼트 방 정보 저장 및 초기화
+
+    tournamentCreatedProducer({
+      mode: message.mode,
+      size: message.size,
+      players: message.players,
+      tournamentId: tournament.id,
+      timestamp: new Date().toISOString(),
+    });
   }
 
   private async createTournamentInDatabase(message: {
@@ -61,8 +89,8 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     players: number[];
     size: 2 | 4 | 8 | 16;
     timestamp: string;
-  }) {
-    await this.prisma.$transaction(async (tx) => {
+  }): Promise<Tournament> {
+    const tournament = await this.prisma.$transaction(async (tx) => {
       const tournament = await this.createTournament(message, tx);
       const players = await this.createPlayers(message, tournament, tx);
 
@@ -74,8 +102,11 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
       });
 
       await this.assignPlayersToMatches(tournament, tx, players);
+      return tournament;
     });
     this.logger.info(message, `토너먼트 생성 완료:`);
+
+    return tournament;
   }
 
   private async assignPlayersToMatches(
