@@ -2,6 +2,7 @@ import { KafkaTopicConsumer } from './kafka.topic.consumer.js';
 import { TOPICS, TOURNAMENT_EVENTS } from '../constants.js';
 import TournamentRepositoryInterface from '../../storage/database/interfaces/tournament.repository.interface.js';
 import {
+  createdTournamentMessageSchema,
   requestTournamentMessageSchema,
   requestTournamentMessageType,
 } from '../schemas/tournament.topic.schema.js';
@@ -9,6 +10,7 @@ import { PlayerRepositoryInterface } from '../../storage/database/interfaces/pla
 import { PrismaClient, Tournament, Prisma, Match, Player } from '@prisma/client';
 import MatchRepositoryInterface from '../../storage/database/interfaces/match.repository.interface.js';
 import { FastifyBaseLogger } from 'fastify';
+import { Namespace } from 'socket.io';
 
 interface tournamentCreateParams {
   tx: Prisma.TransactionClient;
@@ -27,6 +29,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     private readonly matchRepository: MatchRepositoryInterface,
     private readonly prisma: PrismaClient,
     private readonly logger: FastifyBaseLogger,
+    private readonly waitingNamespace: Namespace,
   ) {}
 
   async handle(messageValue: string): Promise<void> {
@@ -67,7 +70,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
         tournament,
         size: message.size,
         tx,
-        level: 1,
+        level: 2,
       });
 
       await this.assignPlayersToMatches(tournament, tx, players);
@@ -89,8 +92,8 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
       await this.matchRepository.update(
         leafNodes[i / 2].id,
         {
-          player1: players[i].id,
-          player2: players[i + 1].id,
+          player1: players[i].userId,
+          player2: players[i + 1].userId,
         },
         tx,
       );
