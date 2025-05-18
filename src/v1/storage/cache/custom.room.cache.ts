@@ -55,8 +55,17 @@ export default class CustomRoomCache {
     if (await this.isRoomFull(roomId)) {
       throw new Error('Room is full');
     }
+    if (!(await this.isUserInvited(roomId, userId))) {
+      throw new Error('User is not invited');
+    }
 
     const usersKey = this.getUsersKey(roomId);
+    await this.redis.sadd(usersKey, String(userId));
+    this.logger.info(`User ${userId} joined room ${roomId}`);
+  }
+
+  async addInvitedUserToRoom(roomId: string, userId: number): Promise<void> {
+    const usersKey = this.getInvitedKey(roomId);
     await this.redis.sadd(usersKey, String(userId));
     this.logger.info(`User ${userId} joined room ${roomId}`);
   }

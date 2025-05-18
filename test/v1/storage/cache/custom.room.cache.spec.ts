@@ -62,6 +62,7 @@ describe('CustomRoomCache', () => {
       createdAt: Date.now(),
     });
 
+    await cache.addInvitedUserToRoom(roomId, 2);
     await cache.addUserToRoom(roomId, 2);
     const players = await cache.getUsersInRoom(roomId);
     await cache.deleteRoom(roomId);
@@ -76,6 +77,7 @@ describe('CustomRoomCache', () => {
       createdAt: Date.now(),
     });
 
+    await cache.addInvitedUserToRoom(roomId, 2);
     await cache.addUserToRoom(roomId, 2);
     const players = await cache.getUsersInRoom(roomId);
 
@@ -91,6 +93,7 @@ describe('CustomRoomCache', () => {
       createdAt: Date.now(),
     });
 
+    await cache.addInvitedUserToRoom(roomId, 2);
     await cache.addUserToRoom(roomId, 2);
 
     await expect(cache.addUserToRoom(roomId, 3)).rejects.toThrow(Error);
@@ -104,6 +107,7 @@ describe('CustomRoomCache', () => {
       createdAt: Date.now(),
     });
 
+    await cache.addInvitedUserToRoom(roomId, 2);
     await cache.addUserToRoom(roomId, 2);
     await cache.removeUserFromRoom(roomId, 2);
 
