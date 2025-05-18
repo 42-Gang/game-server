@@ -18,9 +18,8 @@ export async function createSocketServer(fastify: FastifyInstance) {
   const subClient = pubClient.duplicate();
   socket.adapter(createAdapter(pubClient, subClient));
 
-  await registerSocketHandler(socket);
-
   registerSocketGateway(fastify.diContainer, socket);
+  await registerSocketHandler(socket);
   return socket;
 }
 
