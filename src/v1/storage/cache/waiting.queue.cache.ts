@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { FastifyBaseLogger } from 'fastify';
 
 export default class WaitingQueueCache {
-  private readonly WAITING_QUEUE = `waiting-queue`;
+  private readonly BASE_QUEUE_KEY_PREFIX = `waiting-queue`;
 
   constructor(
     private readonly redisClient: Redis,
@@ -10,13 +10,13 @@ export default class WaitingQueueCache {
     private readonly tournamentSize: number,
   ) {}
 
-  getKey(tournamentSize: number): string {
-    return `${this.WAITING_QUEUE}:${tournamentSize}`;
+  getQueueKey(tournamentSize: number): string {
+    return `${this.BASE_QUEUE_KEY_PREFIX}:${tournamentSize}`;
   }
 
-  async addToQueue(tournamentSize: number, userId: number): Promise<void> {
+  async enqueueUser(tournamentSize: number, userId: number): Promise<void> {
     this.logger.info(`Adding user ${userId} to waiting queue`);
-    const key = this.getKey(tournamentSize);
+    const key = this.getQueueKey(tournamentSize);
 
     await this.redisClient.rpush(key, userId);
   }
@@ -25,25 +25,25 @@ export default class WaitingQueueCache {
     return this.tournamentSize;
   }
 
-  async canStartGame(tournamentSize: number): Promise<boolean> {
-    const queueLength = await this.getQueueLength(tournamentSize);
+  async isQueueReady(tournamentSize: number): Promise<boolean> {
+    const queueLength = await this.getCurrentQueueSize(tournamentSize);
     return this.tournamentSize <= queueLength;
   }
 
-  async getQueueLength(tournamentSize: number): Promise<number> {
-    const key = this.getKey(tournamentSize);
+  async getCurrentQueueSize(tournamentSize: number): Promise<number> {
+    const key = this.getQueueKey(tournamentSize);
 
     const queueLength = await this.redisClient.llen(key);
     this.logger.info(`Current queue length: ${queueLength}`);
     return queueLength;
   }
 
-  async popForGame(tournamentSize: number): Promise<number[]> {
-    if (!(await this.canStartGame(tournamentSize))) {
+  async dequeueUsersForMatch(tournamentSize: number): Promise<number[]> {
+    if (!(await this.isQueueReady(tournamentSize))) {
       throw new Error('Not enough users in the queue to start a game');
     }
 
-    const key = this.getKey(tournamentSize);
+    const key = this.getQueueKey(tournamentSize);
 
     const users: number[] = [];
     for (let i = 0; i < this.tournamentSize; i++) {
