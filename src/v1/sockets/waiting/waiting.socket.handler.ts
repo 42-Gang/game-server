@@ -15,6 +15,8 @@ export default class WaitingSocketHandler {
       `User ${socket.data.userId} joined waiting room for tournament size ${tournamentSize}`,
     );
 
+    // TODO: 이미 대기큐에 들어가 있는 유저는 대기큐에 들어가지 않도록 처리
+
     await this.waitingQueueCache.addUser(tournamentSize, socket.data.userId);
     if (await this.waitingQueueCache.isQueueReady(tournamentSize)) {
       const userIds = await this.waitingQueueCache.popUsersForMatch(tournamentSize);
@@ -24,6 +26,13 @@ export default class WaitingSocketHandler {
         userIds,
       });
       this.logger.info(`Tournament request sent for size ${tournamentSize} with users: ${userIds}`);
+    }
+  }
+
+  leaveRoom(socket: Socket) {
+    this.logger.info(`User ${socket.data.userId} left waiting room`);
+    for (const tournamentSize of [2, 4, 8, 16]) {
+      this.waitingQueueCache.removeUser(tournamentSize, socket.data.userId);
     }
   }
 }
