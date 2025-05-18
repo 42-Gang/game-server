@@ -13,7 +13,7 @@ export default class WaitingQueueCache {
     return `${this.BASE_QUEUE_KEY_PREFIX}:${tournamentSize}`;
   }
 
-  async enqueueUser(tournamentSize: number, userId: number): Promise<void> {
+  async addUser(tournamentSize: number, userId: number): Promise<void> {
     this.logger.info(`Adding user ${userId} to ${tournamentSize}size waiting queue`);
     const key = this.getQueueKey(tournamentSize);
 
@@ -33,7 +33,7 @@ export default class WaitingQueueCache {
     return queueLength;
   }
 
-  async dequeueUsersForMatch(tournamentSize: number): Promise<number[]> {
+  async popUsersForMatch(tournamentSize: number): Promise<number[]> {
     if (!(await this.isQueueReady(tournamentSize))) {
       throw new Error('Not enough users in the queue to start a game');
     }

@@ -15,9 +15,9 @@ export default class WaitingSocketHandler {
       `User ${socket.data.userId} joined waiting room for tournament size ${tournamentSize}`,
     );
 
-    await this.waitingQueueCache.enqueueUser(tournamentSize, socket.data.userId);
+    await this.waitingQueueCache.addUser(tournamentSize, socket.data.userId);
     if (await this.waitingQueueCache.isQueueReady(tournamentSize)) {
-      const userIds = await this.waitingQueueCache.dequeueUsersForMatch(tournamentSize);
+      const userIds = await this.waitingQueueCache.popUsersForMatch(tournamentSize);
       await tournamentRequestProducer({
         tournamentSize,
         mode: 'AUTO',

@@ -19,7 +19,7 @@ describe('WaitingQueueCache', () => {
   });
 
   it('addToQueue: 유저를 큐에 추가한다', async () => {
-    await cache.enqueueUser(4, 123);
+    await cache.addUser(4, 123);
     expect(redisMock.rpush).toHaveBeenCalledWith('waiting-queue:4', 123);
     expect(loggerMock.info).toHaveBeenCalledWith('Adding user 123 to waiting queue');
   });
@@ -48,14 +48,14 @@ describe('WaitingQueueCache', () => {
       .mockResolvedValueOnce('2')
       .mockResolvedValueOnce('3')
       .mockResolvedValueOnce('4');
-    const users = await cache.dequeueUsersForMatch(4);
+    const users = await cache.popUsersForMatch(4);
     expect(users).toEqual([1, 2, 3, 4]);
     expect(loggerMock.info).toHaveBeenCalledWith('Popped users for game: 1,2,3,4');
   });
 
   it('popForGame: 인원이 부족하면 에러 발생', async () => {
     redisMock.llen.mockResolvedValue(2);
-    await expect(cache.dequeueUsersForMatch(4)).rejects.toThrow(
+    await expect(cache.popUsersForMatch(4)).rejects.toThrow(
       'Not enough users in the queue to start a game',
     );
   });
@@ -63,6 +63,6 @@ describe('WaitingQueueCache', () => {
   it('popForGame: lpop에서 null 반환 시 에러 발생', async () => {
     redisMock.llen.mockResolvedValue(4);
     redisMock.lpop.mockResolvedValueOnce('1').mockResolvedValueOnce(null);
-    await expect(cache.dequeueUsersForMatch(4)).rejects.toThrow('No more users in the queue');
+    await expect(cache.popUsersForMatch(4)).rejects.toThrow('No more users in the queue');
   });
 });
