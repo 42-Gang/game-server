@@ -46,6 +46,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
 
   private async requestTournament(message: requestTournamentMessageType) {
     await this.createTournamentInDatabase(message);
+    // TODO: Redis에 토너먼트 방 정보 저장 및 초기화
   }
 
   private async createTournamentInDatabase(message: {
