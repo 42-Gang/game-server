@@ -18,6 +18,13 @@ export async function createSocketServer(fastify: FastifyInstance) {
   const subClient = pubClient.duplicate();
   socket.adapter(createAdapter(pubClient, subClient));
 
+  await registerSocketHandler(socket);
+
+  registerSocketGateway(fastify.diContainer, socket);
+  return socket;
+}
+
+async function registerSocketHandler(socket: Server) {
   const NODE_EXTENSION = process.env.NODE_ENV == 'dev' ? 'ts' : 'js';
   await socket.diContainer.loadModules([`./**/src/**/*.socket.handler.${NODE_EXTENSION}`], {
     esModules: true,
@@ -28,7 +35,4 @@ export async function createSocketServer(fastify: FastifyInstance) {
       injectionMode: 'CLASSIC',
     },
   });
-
-  registerSocketGateway(fastify.diContainer, socket);
-  return socket;
 }
