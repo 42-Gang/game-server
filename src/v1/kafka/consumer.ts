@@ -1,8 +1,12 @@
 import { kafka } from '../../plugins/kafka.js';
 import { KafkaTopicConsumer } from './consumers/kafka.topic.consumer.js';
 import TournamentTopicConsumer from './consumers/tournament.topic.consumer.js';
+import { FastifyBaseLogger } from 'fastify';
 
-export async function startConsumer(tournamentTopicConsumer: TournamentTopicConsumer) {
+export async function startConsumer(
+  tournamentTopicConsumer: TournamentTopicConsumer,
+  logger: FastifyBaseLogger,
+) {
   const mainConsumer = kafka.consumer({ groupId: 'STATUS', sessionTimeout: 10000 });
   const consumers: KafkaTopicConsumer[] = [tournamentTopicConsumer];
 
@@ -26,12 +30,8 @@ export async function startConsumer(tournamentTopicConsumer: TournamentTopicCons
       try {
         await handler.handle(message.value.toString());
       } catch (error) {
-        console.error(
-          `❌ Error handling message from topic ${topic}:`,
-          error,
-          'Raw message:',
-          message.value.toString(),
-        );
+        logger.error(error, `❌ Error handling message from topic ${topic}:`);
+        logger.error(message.value.toString(), 'Raw message:');
       }
     },
   });

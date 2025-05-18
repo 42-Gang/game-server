@@ -8,6 +8,7 @@ import {
 import { PlayerRepositoryInterface } from '../../storage/database/interfaces/player.repository.interface.js';
 import { PrismaClient, Tournament, Prisma, Match, Player } from '@prisma/client';
 import MatchRepositoryInterface from '../../storage/database/interfaces/match.repository.interface.js';
+import { FastifyBaseLogger } from 'fastify';
 
 interface tournamentCreateParams {
   tx: Prisma.TransactionClient;
@@ -25,18 +26,21 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     private readonly playerRepository: PlayerRepositoryInterface,
     private readonly matchRepository: MatchRepositoryInterface,
     private readonly prisma: PrismaClient,
+    private readonly logger: FastifyBaseLogger,
   ) {}
 
   async handle(messageValue: string): Promise<void> {
     const parsedMessage = JSON.parse(messageValue);
+    this.logger.info(parsedMessage, '토너먼트 메시지 수신:');
 
-    if (parsedMessage.eventType == TOURNAMENT_EVENTS.REQUEST) {
+    if (parsedMessage.eventType === TOURNAMENT_EVENTS.REQUEST) {
       const message = requestTournamentMessageSchema.parse(parsedMessage);
-      await this.requestTournament(message);
 
+      this.logger.info(message, `토너먼트 요청 수신:`);
+      await this.requestTournament(message);
       return;
     }
-    if (parsedMessage.eventType == TOURNAMENT_EVENTS.CREATED) {
+    if (parsedMessage.eventType === TOURNAMENT_EVENTS.CREATED) {
       /** TODO: Redis에 토너먼트 방 정보 저장 및 초기화
        * 1. 접속해야할 토너먼트 ID를 사용자들에게 전달.
        */
@@ -68,6 +72,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
 
       await this.assignPlayersToMatches(tournament, tx, players);
     });
+    this.logger.info(message, `토너먼트 생성 완료:`);
   }
 
   private async assignPlayersToMatches(

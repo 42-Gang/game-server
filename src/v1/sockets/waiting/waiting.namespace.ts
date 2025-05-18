@@ -22,6 +22,8 @@ export function startWaitingNamespace(namespace: Namespace) {
       ),
     );
 
+    // TODO: 방 나가기
+
     socket.on('disconnect', () => {
       logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
       waitingSocketHandler.leaveRoom(socket);

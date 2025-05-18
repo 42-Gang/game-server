@@ -13,6 +13,7 @@ type tournamentRequestProducerParams = {
 
 export async function tournamentRequestProducer({
   tournamentSize,
+  mode,
   userIds,
 }: tournamentRequestProducerParams) {
   const timestamp = new Date().toISOString();
@@ -20,11 +21,11 @@ export async function tournamentRequestProducer({
     topic: TOPICS.TOURNAMENT,
     messages: [
       {
-        key: String(tournamentSize),
         value: JSON.stringify({
-          eventType: TOURNAMENT_EVENTS.CREATED,
-          tournamentSize,
-          userIds,
+          eventType: TOURNAMENT_EVENTS.REQUEST,
+          mode,
+          size: tournamentSize,
+          players: userIds,
           timestamp,
         }),
       },
