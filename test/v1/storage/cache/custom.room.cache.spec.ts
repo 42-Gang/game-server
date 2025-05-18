@@ -100,6 +100,17 @@ describe('CustomRoomCache', () => {
     await cache.deleteRoom(roomId);
   });
 
+  it('join(not invited)', async () => {
+    const roomId = await cache.createRoom({
+      hostId: 1,
+      maxPlayers: 4,
+      createdAt: Date.now(),
+    });
+
+    await expect(cache.addUserToRoom(roomId, 2)).rejects.toThrow(Error);
+    await cache.deleteRoom(roomId);
+  });
+
   it('removeUser', async () => {
     const roomId = await cache.createRoom({
       hostId: 1,
