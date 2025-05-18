@@ -22,6 +22,7 @@ export async function setDiContainer(server: FastifyInstance) {
   await diContainer.loadModules(
     [
       `./**/src/**/*.repository.${NODE_EXTENSION}`,
+      `./**/src/**/*.cache.${NODE_EXTENSION}`,
       `./**/src/**/*.controller.${NODE_EXTENSION}`,
       `./**/src/**/*.service.${NODE_EXTENSION}`,
     ],

@@ -12,7 +12,7 @@ async function init() {
 
   await configureServer(server); // 서버 설정
   await registerPlugins(server); // 플러그인 등록
-  const socket = createSocketServer(server);
+  const socket = await createSocketServer(server);
 
   await server.ready(); // 플러그인 로딩 완료 대기
   await startServer(server); // 서버 시작

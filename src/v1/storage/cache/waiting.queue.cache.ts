@@ -14,7 +14,7 @@ export default class WaitingQueueCache {
   }
 
   async enqueueUser(tournamentSize: number, userId: number): Promise<void> {
-    this.logger.info(`Adding user ${userId} to waiting queue`);
+    this.logger.info(`Adding user ${userId} to ${tournamentSize}size waiting queue`);
     const key = this.getQueueKey(tournamentSize);
 
     await this.redisClient.rpush(key, userId);
