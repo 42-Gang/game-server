@@ -1,11 +1,19 @@
 import { FastifyBaseLogger } from 'fastify';
+import { ZodError } from 'zod';
 
 export function socketErrorHandler<Args extends unknown[], Return>(
   logger: FastifyBaseLogger,
   handler: (...args: Args) => Return | Promise<Return>,
 ): (...args: Args) => void {
   const handleError = (err: unknown) => {
-    logger.error(err, 'please handle me');
+    if (err instanceof ZodError) {
+      logger.error(err.errors, 'ZodError');
+      return;
+    }
+    if (err instanceof Error) {
+      logger.error('Socket error', err.message);
+      return;
+    }
   };
 
   return (...args: Args): void => {

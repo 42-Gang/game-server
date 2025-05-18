@@ -1,4 +1,4 @@
-import { customJoinSchemaType } from './schemas/custom-join.schema.js';
+import { customJoinSchema, customJoinSchemaType } from './schemas/custom-join.schema.js';
 import { Socket } from 'socket.io';
 import WaitingQueueCache from '../../storage/cache/waiting.queue.cache.js';
 import { FastifyBaseLogger } from 'fastify';
@@ -10,7 +10,11 @@ export default class WaitingSocketHandler {
     private readonly logger: FastifyBaseLogger,
   ) {}
 
-  async joinRoom(socket: Socket, { tournamentSize }: customJoinSchemaType) {
+  async joinRoom(socket: Socket, payload: customJoinSchemaType) {
+    customJoinSchema.parse(payload);
+
+    const { tournamentSize } = payload;
+
     this.logger.info(
       `User ${socket.data.userId} joined waiting room for tournament size ${tournamentSize}`,
     );
