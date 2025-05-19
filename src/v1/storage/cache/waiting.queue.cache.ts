@@ -54,7 +54,6 @@ export default class WaitingQueueCache {
     this.logger.info(`Removing user ${userId} from ${tournamentSize}size waiting queue`);
     const key = this.getQueueKey(tournamentSize);
 
-    // Remove the user from the list
     await this.redisClient.lrem(key, 0, userId);
   }
 }

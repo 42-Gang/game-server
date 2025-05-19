@@ -1,15 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { redis } from '../../../../src/plugins/redis.js';
 import CustomRoomCache from '../../../../src/v1/storage/cache/custom.room.cache.js';
+import { FastifyBaseLogger } from 'fastify';
 
 describe('CustomRoomCache', () => {
   let cache: CustomRoomCache;
 
   beforeEach(() => {
     const loggerMock = {
-      info: vi.fn((value) => console.log(value)),
+      info: vi.fn(),
       error: vi.fn(),
-    };
+      warn: vi.fn(),
+      debug: vi.fn(),
+      trace: vi.fn(),
+      fatal: vi.fn(),
+      child: vi.fn(() => loggerMock),
+      level: vi.fn(() => loggerMock),
+      silent: vi.fn(() => loggerMock),
+    } as unknown as FastifyBaseLogger;
     cache = new CustomRoomCache(redis, loggerMock);
   });
 
