@@ -4,7 +4,12 @@ import WaitingQueueCache from '../../storage/cache/waiting.queue.cache.js';
 import { FastifyBaseLogger } from 'fastify';
 import { tournamentRequestProducer } from '../../kafka/producers/tournament.producer.js';
 import CustomRoomCache from '../../storage/cache/custom.room.cache.js';
-import { customCreateSchema, customCreateType } from './schemas/custom-game.schema.js';
+import {
+  customCreateSchema,
+  customCreateType,
+  customInviteSchema,
+  customInviteType,
+} from './schemas/custom-game.schema.js';
 
 export default class WaitingSocketHandler {
   constructor(
@@ -46,6 +51,14 @@ export default class WaitingSocketHandler {
     });
     this.logger.info(
       `User ${socket.data.userId} created custom room with size ${message.tournamentSize}`,
+    );
+  }
+
+  inviteCustomRoom(socket: Socket, payload: customInviteType) {
+    const message = customInviteSchema.parse(payload);
+
+    this.logger.info(
+      `${message.userId} user invited from ${message.roomId} custom room by ${socket.data.userId}`,
     );
   }
 

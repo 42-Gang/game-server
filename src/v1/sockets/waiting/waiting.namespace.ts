@@ -38,6 +38,13 @@ export function startWaitingNamespace(namespace: Namespace) {
       ),
     );
 
+    socket.on(
+      SOCKET_EVENTS.CUSTOM.INVITE,
+      socketErrorHandler(logger, (payload) =>
+        waitingSocketHandler.inviteCustomRoom(socket, payload),
+      ),
+    );
+
     // TODO: 나가기 기능 추가
 
     socket.on('disconnect', () => {
