@@ -6,12 +6,10 @@ import WaitingSocketHandler from './handlers/waiting.socket.handler.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from './waiting.event.js';
 import { FastifyBaseLogger } from 'fastify';
+import { AutoSocketHandler } from './handlers/auto.socket.handler.js';
+import { CustomSocketHandler } from './handlers/custom.socket.handler.js';
 
-function registerAutoEvents(
-  socket: Socket,
-  handler: WaitingSocketHandler,
-  logger: FastifyBaseLogger,
-) {
+function registerAutoEvents(socket: Socket, handler: AutoSocketHandler, logger: FastifyBaseLogger) {
   socket.on(
     SOCKET_EVENTS.AUTO.JOIN,
     socketErrorHandler(socket, logger, (payload: autoJoinSchemaType) =>
@@ -22,7 +20,7 @@ function registerAutoEvents(
 
 function registerCustomEvents(
   socket: Socket,
-  handler: WaitingSocketHandler,
+  handler: CustomSocketHandler,
   logger: FastifyBaseLogger,
 ) {
   socket.on(
@@ -45,6 +43,10 @@ export function startWaitingNamespace(namespace: Namespace) {
   namespace.on('connection', async (socket: Socket) => {
     const waitingSocketHandler: WaitingSocketHandler =
       namespace.server.diContainer.resolve('waitingSocketHandler');
+    const autoSocketHandler: AutoSocketHandler =
+      namespace.server.diContainer.resolve('autoSocketHandler');
+    const customSocketHandler: CustomSocketHandler =
+      namespace.server.diContainer.resolve('customSocketHandler');
     const socketCache: SocketCache = namespace.server.diContainer.resolve('socketCache');
     const logger = namespace.server.logger;
     const userId = socket.data.userId;
@@ -57,8 +59,8 @@ export function startWaitingNamespace(namespace: Namespace) {
 
     logger.info(`🟢 [/waiting] Connected: ${socket.id} ${userId}`);
 
-    registerAutoEvents(socket, waitingSocketHandler, logger);
-    registerCustomEvents(socket, waitingSocketHandler, logger);
+    registerAutoEvents(socket, autoSocketHandler, logger);
+    registerCustomEvents(socket, customSocketHandler, logger);
 
     // TODO: 나가기 기능 추가
 
