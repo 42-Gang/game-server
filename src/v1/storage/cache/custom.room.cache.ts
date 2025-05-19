@@ -100,6 +100,11 @@ export default class CustomRoomCache {
     return (await this.redisClient.sismember(key, userId)) === 1;
   }
 
+  async isUserHost(roomId: string, userId: number): Promise<boolean> {
+    const room = await this.getRoomInfo(roomId);
+    return room.hostId === userId;
+  }
+
   async inviteUserToRoom(roomId: string, userId: number): Promise<void> {
     const key = this.getInvitedKey(roomId);
     await this.redisClient.sadd(key, userId);

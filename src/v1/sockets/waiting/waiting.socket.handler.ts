@@ -54,9 +54,17 @@ export default class WaitingSocketHandler {
     );
   }
 
-  inviteCustomRoom(socket: Socket, payload: customInviteType) {
+  async inviteCustomRoom(socket: Socket, payload: customInviteType) {
     const message = customInviteSchema.parse(payload);
 
+    if (!(await this.customRoomCache.isUserHost(message.roomId, socket.data.userId))) {
+      throw new Error('You are not the host of this room');
+    }
+    if ((await this.customRoomCache.getUsersInRoom(message.roomId)).includes(payload.userId)) {
+      throw new Error('User is already in the room');
+    }
+
+    await this.customRoomCache.addInvitedUserToRoom(message.roomId, message.userId);
     this.logger.info(
       `${message.userId} user invited from ${message.roomId} custom room by ${socket.data.userId}`,
     );
