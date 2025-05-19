@@ -14,6 +14,8 @@ import { Namespace } from 'socket.io';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from '../../sockets/waiting/waiting.event.js';
 import { tournamentCreatedProducer } from '../producers/tournament.producer.js';
+import { GotClient } from '../../../plugins/http.client.js';
+import { HttpException } from '../../common/exceptions/core.error.js';
 
 interface tournamentCreateParams {
   tx: Prisma.TransactionClient;
@@ -34,6 +36,8 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     private readonly logger: FastifyBaseLogger,
     private readonly waitingNamespace: Namespace,
     private readonly socketCache: SocketCache,
+    private readonly httpClient: GotClient,
+    private readonly userServerUrl: string,
   ) {}
 
   async handle(messageValue: string): Promise<void> {
@@ -60,11 +64,48 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
         }),
       );
 
-      this.logger.info(socketIds, `토너먼트 생성 완료: 소켓 ID`);
+      const players = await this.playerRepository.findManyByTournamentId(message.tournamentId);
+      if (players.length === 0) {
+        throw new Error('플레이어 정보를 가져오는 데 실패했습니다.');
+      }
+      const playerIds = players.map((player) => player.userId);
+      this.logger.info(playerIds, '플레이어 ID:');
+
+      const users = await Promise.all(
+        playerIds.map(async (userid) => {
+          const user = await this.httpClient.requestJson<{
+            data: {
+              id: number;
+              nickname: string;
+              avatarUrl: string;
+            };
+            message: string;
+          }>({
+            url: `http://${this.userServerUrl}/api/v1/users/${userid}`,
+            method: 'GET',
+            headers: {
+              'x-internal': 'true',
+              'x-authenticated': 'true',
+              'x-user-id': '10',
+            },
+          });
+          if (user.statusCode !== 200) {
+            throw new HttpException(user.statusCode, user.body.message);
+          }
+          this.logger.info(user, '유저 정보:');
+          return user.body.data;
+        }),
+      );
+      this.logger.info(users, '유저 정보:');
 
       for (const socketId of socketIds) {
         if (socketId) {
-          this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.TOURNAMENT.CREATED, message);
+          this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.TOURNAMENT.CREATED, {
+            tournamentId: message.tournamentId,
+            mode: message.mode,
+            size: message.size,
+            users,
+          });
         }
       }
       return;
