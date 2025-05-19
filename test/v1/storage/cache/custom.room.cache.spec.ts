@@ -21,7 +21,6 @@ describe('CustomRoomCache', () => {
     cache = new CustomRoomCache(redis, loggerMock);
 
     await redis.flushdb();
-    await redis.disconnect();
   });
 
   it('create', async () => {
@@ -62,7 +61,6 @@ describe('CustomRoomCache', () => {
     });
 
     const players = await cache.getUsersInRoom(roomId);
-    await cache.deleteRoom(roomId);
 
     expect(players).toEqual([1]);
   });

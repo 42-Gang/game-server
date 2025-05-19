@@ -13,7 +13,6 @@ describe('WaitingQueueCache', () => {
     cache = new WaitingQueueCache(redis, loggerMock);
 
     await redis.flushdb();
-    await redis.disconnect();
   });
 
   it('addToQueue: 유저를 큐에 추가한다', async () => {
