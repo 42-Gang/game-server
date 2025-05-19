@@ -1,9 +1,9 @@
-import { autoJoinSchema, autoJoinSchemaType } from './schemas/auto-game.schema.js';
+import { autoJoinSchema, autoJoinSchemaType } from '../schemas/auto-game.schema.js';
 import { Socket } from 'socket.io';
-import WaitingQueueCache from '../../storage/cache/waiting.queue.cache.js';
+import WaitingQueueCache from '../../../storage/cache/waiting.queue.cache.js';
 import { FastifyBaseLogger } from 'fastify';
-import { tournamentRequestProducer } from '../../kafka/producers/tournament.producer.js';
-import CustomRoomCache from '../../storage/cache/custom.room.cache.js';
+import { tournamentRequestProducer } from '../../../kafka/producers/tournament.producer.js';
+import CustomRoomCache from '../../../storage/cache/custom.room.cache.js';
 import {
   customAcceptSchema,
   customAcceptType,
@@ -11,10 +11,10 @@ import {
   customCreateType,
   customInviteSchema,
   customInviteType,
-} from './schemas/custom-game.schema.js';
-import SocketCache from '../../storage/cache/socket.cache.js';
-import { SOCKET_EVENTS } from './waiting.event.js';
-import UserServiceClient from '../../client/user.service.client.js';
+} from '../schemas/custom-game.schema.js';
+import SocketCache from '../../../storage/cache/socket.cache.js';
+import { SOCKET_EVENTS } from '../waiting.event.js';
+import UserServiceClient from '../../../client/user.service.client.js';
 
 export default class WaitingSocketHandler {
   constructor(
