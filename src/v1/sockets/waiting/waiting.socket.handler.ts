@@ -1,4 +1,4 @@
-import { customJoinSchema, customJoinSchemaType } from './schemas/custom-join.schema.js';
+import { autoJoinSchema, customJoinSchemaType } from './schemas/auto-join.schema.js';
 import { Socket } from 'socket.io';
 import WaitingQueueCache from '../../storage/cache/waiting.queue.cache.js';
 import { FastifyBaseLogger } from 'fastify';
@@ -11,7 +11,7 @@ export default class WaitingSocketHandler {
   ) {}
 
   async joinAutoRoom(socket: Socket, payload: customJoinSchemaType) {
-    customJoinSchema.parse(payload);
+    autoJoinSchema.parse(payload);
 
     const { tournamentSize } = payload;
 
@@ -32,6 +32,10 @@ export default class WaitingSocketHandler {
       });
       this.logger.info(`Tournament request sent for size ${tournamentSize} with users: ${userIds}`);
     }
+  }
+
+  async createCustomRoom(socket: Socket, payload: customJoinSchemaType) {
+
   }
 
   leaveRoom(socket: Socket) {

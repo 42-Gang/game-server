@@ -1,7 +1,7 @@
 import { Namespace, Socket } from 'socket.io';
 import { socketMiddleware } from '../utils/middleware.js';
 import { socketErrorHandler } from '../utils/errorHandler.js';
-import { customJoinSchemaType } from './schemas/custom-join.schema.js';
+import { customJoinSchemaType } from './schemas/auto-join.schema.js';
 import WaitingSocketHandler from './waiting.socket.handler.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from './waiting.event.js';
@@ -33,7 +33,9 @@ export function startWaitingNamespace(namespace: Namespace) {
 
     socket.on(
       SOCKET_EVENTS.CUSTOM.CREATE,
-      socketErrorHandler(logger, (payload) => {}),
+      socketErrorHandler(logger, (payload) =>
+        waitingSocketHandler.createCustomRoom(socket, payload),
+      ),
     );
 
     // TODO: 나가기 기능 추가
