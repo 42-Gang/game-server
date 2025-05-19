@@ -6,7 +6,7 @@ import { FastifyBaseLogger } from 'fastify';
 describe('CustomRoomCache', () => {
   let cache: CustomRoomCache;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     const loggerMock = {
       info: vi.fn(),
       error: vi.fn(),
@@ -19,6 +19,9 @@ describe('CustomRoomCache', () => {
       silent: vi.fn(() => loggerMock),
     } as unknown as FastifyBaseLogger;
     cache = new CustomRoomCache(redis, loggerMock);
+
+    await redis.flushdb();
+    await redis.disconnect();
   });
 
   it('create', async () => {

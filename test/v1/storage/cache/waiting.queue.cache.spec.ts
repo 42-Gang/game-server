@@ -6,11 +6,14 @@ describe('WaitingQueueCache', () => {
   let loggerMock: any;
   let cache: WaitingQueueCache;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     loggerMock = {
       info: vi.fn(),
     };
     cache = new WaitingQueueCache(redis, loggerMock);
+
+    await redis.flushdb();
+    await redis.disconnect();
   });
 
   it('addToQueue: 유저를 큐에 추가한다', async () => {
