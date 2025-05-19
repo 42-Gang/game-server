@@ -10,11 +10,14 @@ import {
   customInviteSchema,
   customInviteType,
 } from './schemas/custom-game.schema.js';
+import SocketCache from '../../storage/cache/socket.cache.js';
+import { SOCKET_EVENTS } from './waiting.event.js';
 
 export default class WaitingSocketHandler {
   constructor(
     private readonly waitingQueueCache: WaitingQueueCache,
     private readonly customRoomCache: CustomRoomCache,
+    private readonly socketCache: SocketCache,
     private readonly logger: FastifyBaseLogger,
   ) {}
 
@@ -65,6 +68,18 @@ export default class WaitingSocketHandler {
     }
 
     await this.customRoomCache.addInvitedUserToRoom(message.roomId, message.userId);
+    const socketId = await this.socketCache.getSocketId({
+      namespace: 'waiting',
+      userId: message.userId,
+    });
+    if (!socketId) {
+      this.logger.error(`User ${message.userId} is not connected`);
+      return;
+    }
+    socket.to(socketId).emit(SOCKET_EVENTS.CUSTOM.INVITE, {
+      roomId: message.roomId,
+      hostId: socket.data.userId,
+    });
     this.logger.info(
       `${message.userId} user invited from ${message.roomId} custom room by ${socket.data.userId}`,
     );
@@ -75,5 +90,6 @@ export default class WaitingSocketHandler {
     for (const tournamentSize of [2, 4, 8, 16]) {
       this.waitingQueueCache.removeUser(tournamentSize, socket.data.userId);
     }
+    this.customRoomCache.disconnectedUser(socket.data.userId);
   }
 }

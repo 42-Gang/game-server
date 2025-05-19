@@ -45,6 +45,7 @@ export default class CustomRoomCache {
       this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl),
       this.redisClient.sadd(this.getUsersKey(roomId), room.hostId),
       this.redisClient.expire(this.getUsersKey(roomId), this.ttl),
+      this.redisClient.hset('custom:users', room.hostId, roomId),
     ]);
     this.logger.info(`Created custom room ${roomId} with host ${room.hostId}`);
     return roomId;
@@ -60,13 +61,15 @@ export default class CustomRoomCache {
 
     const usersKey = this.getUsersKey(roomId);
     await this.redisClient.sadd(usersKey, String(userId));
+
+    await this.redisClient.hset('custom:users', userId, roomId);
     this.logger.info(`User ${userId} joined room ${roomId}`);
   }
 
   async addInvitedUserToRoom(roomId: string, userId: number): Promise<void> {
     const usersKey = this.getInvitedKey(roomId);
     await this.redisClient.sadd(usersKey, String(userId));
-    this.logger.info(`User ${userId} joined room ${roomId}`);
+    this.logger.info(`User ${userId} invited room ${roomId}`);
   }
 
   private async isRoomFull(roomId: string) {
@@ -114,6 +117,7 @@ export default class CustomRoomCache {
   async removeUserFromRoom(roomId: string, userId: number): Promise<void> {
     const usersKey = this.getUsersKey(roomId);
     await this.redisClient.srem(usersKey, String(userId));
+    await this.redisClient.hdel('custom:users', String(userId));
     this.logger.info(`User ${userId} left room ${roomId}`);
 
     const userCount = await this.redisClient.scard(usersKey);
@@ -122,6 +126,20 @@ export default class CustomRoomCache {
       await this.redisClient.set(this.getStatusKey(roomId), 'WAITING');
       this.logger.info(`Room ${roomId} is now WAITING`);
     }
+
+    if (userCount === 0) {
+      await this.deleteRoom(roomId);
+      this.logger.info(`Room ${roomId} deleted due to inactivity`);
+    }
+  }
+
+  async disconnectedUser(userId: number): Promise<void> {
+    const roomId = await this.redisClient.hget('custom:users', String(userId));
+    if (!roomId) {
+      throw new Error('User is not in any room');
+    }
+
+    this.removeUserFromRoom(roomId, userId);
   }
 
   async deleteRoom(roomId: string): Promise<void> {
