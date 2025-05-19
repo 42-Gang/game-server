@@ -6,8 +6,8 @@ import WaitingSocketHandler from './handlers/waiting.socket.handler.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from './waiting.event.js';
 import { FastifyBaseLogger } from 'fastify';
-import { AutoSocketHandler } from './handlers/auto.socket.handler.js';
-import { CustomSocketHandler } from './handlers/custom.socket.handler.js';
+import AutoSocketHandler from './handlers/auto.socket.handler.js';
+import CustomSocketHandler from './handlers/custom.socket.handler.js';
 
 function registerAutoEvents(socket: Socket, handler: AutoSocketHandler, logger: FastifyBaseLogger) {
   socket.on(
