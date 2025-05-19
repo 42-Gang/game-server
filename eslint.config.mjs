@@ -43,7 +43,9 @@ export default tseslint.config(
       indent: 'off',
       '@typescript-eslint/indent': 'off',
 
-      '@typescript-eslint/no-empty-inbox': 'off', // 빈 객체 리터럴 사용 허용
+      '@typescript-eslint/no-empty-interface': 'off',
+
+      '@typescript-eslint/no-empty-object-type': 'off',
 
       // ✅ 사용하지 않는 변수 관련 규칙
       '@typescript-eslint/no-unused-vars': [
