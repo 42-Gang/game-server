@@ -5,10 +5,13 @@ import { FastifyBaseLogger } from 'fastify';
 import { tournamentRequestProducer } from '../../kafka/producers/tournament.producer.js';
 import CustomRoomCache from '../../storage/cache/custom.room.cache.js';
 import {
+  customAcceptSchema,
+  customAcceptType,
   customCreateSchema,
   customCreateType,
   customInviteSchema,
   customInviteType,
+  customRoomInformationType,
 } from './schemas/custom-game.schema.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from './waiting.event.js';
@@ -48,9 +51,13 @@ export default class WaitingSocketHandler {
   async createCustomRoom(socket: Socket, payload: customCreateType) {
     const message = customCreateSchema.parse(payload);
 
-    await this.customRoomCache.createRoom({
+    const roomId = await this.customRoomCache.createRoom({
       hostId: socket.data.userId,
       maxPlayers: message.tournamentSize,
+    });
+    await socket.join(`custom:${roomId}`);
+    socket.emit(SOCKET_EVENTS.CUSTOM.CREATE, {
+      roomId,
     });
     this.logger.info(
       `User ${socket.data.userId} created custom room with size ${message.tournamentSize}`,
@@ -85,11 +92,25 @@ export default class WaitingSocketHandler {
     );
   }
 
-  leaveRoom(socket: Socket) {
+  async leaveRoom(socket: Socket) {
     this.logger.info(`User ${socket.data.userId} left waiting room`);
     for (const tournamentSize of [2, 4, 8, 16]) {
       this.waitingQueueCache.removeUser(tournamentSize, socket.data.userId);
     }
     this.customRoomCache.disconnectedUser(socket.data.userId);
+  }
+
+  async acceptCustomRoom(socket: Socket, payload: customAcceptType) {
+    const message = customAcceptSchema.parse(payload);
+
+    await this.customRoomCache.addUserToRoom(message.roomId, socket.data.userId);
+    // TODO: 방에 있는 유저들에게 알림
+    // TODO: 들어오는 사용자에게도 알림
+    
+    socket.join(`custom:${message.roomId}`);
+  }
+
+  private broadcastToRoom(socket: Socket, roomId: string, data: customRoomInformationType) {
+    socket.to(`custom:${roomId}`).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, data);
   }
 }

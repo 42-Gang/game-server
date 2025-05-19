@@ -45,13 +45,20 @@ export function startWaitingNamespace(namespace: Namespace) {
       ),
     );
 
+    socket.on(
+      SOCKET_EVENTS.CUSTOM.ACCEPT,
+      socketErrorHandler(socket, logger, (payload) =>
+        waitingSocketHandler.acceptCustomRoom(socket, payload),
+      ),
+    );
+
     // TODO: 나가기 기능 추가
 
     socket.on('disconnect', () => {
       logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
       waitingSocketHandler.leaveRoom(socket);
       socketCache.deleteSocketId({
-        namespace: namespace.name,
+        namespace: 'waiting',
         userId: userId,
       });
     });

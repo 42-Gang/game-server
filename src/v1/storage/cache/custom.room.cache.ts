@@ -136,7 +136,7 @@ export default class CustomRoomCache {
   async disconnectedUser(userId: number): Promise<void> {
     const roomId = await this.redisClient.hget('custom:users', String(userId));
     if (!roomId) {
-      throw new Error('User is not in any room');
+      return;
     }
 
     this.removeUserFromRoom(roomId, userId);
