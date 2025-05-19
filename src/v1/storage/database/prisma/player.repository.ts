@@ -24,4 +24,8 @@ export default class PlayerRepository implements PlayerRepositoryInterface {
   update(id: number, data: Prisma.PlayerUpdateInput): Promise<Player> {
     return this.prisma.player.update({ where: { id }, data });
   }
+
+  findManyByTournamentId(tournamentId: number): Promise<Player[]> {
+    return this.prisma.player.findMany({ where: { tournamentId } });
+  }
 }
