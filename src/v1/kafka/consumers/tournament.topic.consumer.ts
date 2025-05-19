@@ -78,8 +78,10 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
         if (socketId) {
           this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.TOURNAMENT.CREATED, {
             tournamentId: message.tournamentId,
-            mode: message.mode,
             size: message.size,
+            mode: message.mode,
+          });
+          this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
             users,
           });
         }

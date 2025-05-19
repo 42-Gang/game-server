@@ -116,7 +116,6 @@ export default class WaitingSocketHandler {
     });
     socket.join(`custom:${message.roomId}`);
     socket.emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
-      roomId: message.roomId,
       users,
     });
   }
