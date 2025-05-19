@@ -16,6 +16,7 @@ import { SOCKET_EVENTS } from '../../sockets/waiting/waiting.event.js';
 import { tournamentCreatedProducer } from '../producers/tournament.producer.js';
 import { GotClient } from '../../../plugins/http.client.js';
 import { HttpException } from '../../common/exceptions/core.error.js';
+import UserServiceClient from '../../client/user.service.client.js';
 
 interface tournamentCreateParams {
   tx: Prisma.TransactionClient;
@@ -36,8 +37,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     private readonly logger: FastifyBaseLogger,
     private readonly waitingNamespace: Namespace,
     private readonly socketCache: SocketCache,
-    private readonly httpClient: GotClient,
-    private readonly userServerUrl: string,
+    private readonly userServiceClient: UserServiceClient,
   ) {}
 
   async handle(messageValue: string): Promise<void> {
@@ -73,27 +73,28 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
 
       const users = await Promise.all(
         playerIds.map(async (userid) => {
-          const user = await this.httpClient.requestJson<{
-            data: {
-              id: number;
-              nickname: string;
-              avatarUrl: string;
-            };
-            message: string;
-          }>({
-            url: `http://${this.userServerUrl}/api/v1/users/${userid}`,
-            method: 'GET',
-            headers: {
-              'x-internal': 'true',
-              'x-authenticated': 'true',
-              'x-user-id': '10',
-            },
-          });
-          if (user.statusCode !== 200) {
-            throw new HttpException(user.statusCode, user.body.message);
-          }
-          this.logger.info(user, '유저 정보:');
-          return user.body.data;
+          // const user = await this.httpClient.requestJson<{
+          //   data: {
+          //     id: number;
+          //     nickname: string;
+          //     avatarUrl: string;
+          //   };
+          //   message: string;
+          // }>({
+          //   url: `http://${this.userServerUrl}/api/v1/users/${userid}`,
+          //   method: 'GET',
+          //   headers: {
+          //     'x-internal': 'true',
+          //     'x-authenticated': 'true',
+          //     'x-user-id': '10',
+          //   },
+          // });
+          // if (user.statusCode !== 200) {
+          //   throw new HttpException(user.statusCode, user.body.message);
+          // }
+          // this.logger.info(user, '유저 정보:');
+          // return user.body.data;
+          return await this.userServiceClient.getUserInfo(userid);
         }),
       );
       this.logger.info(users, '유저 정보:');

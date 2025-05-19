@@ -29,6 +29,7 @@ export async function setDiContainer(server: FastifyInstance) {
       `./**/src/**/*.cache.${NODE_EXTENSION}`,
       `./**/src/**/*.controller.${NODE_EXTENSION}`,
       `./**/src/**/*.service.${NODE_EXTENSION}`,
+      `./**/src/**/*.service.client.${NODE_EXTENSION}`,
     ],
     {
       esModules: true,
