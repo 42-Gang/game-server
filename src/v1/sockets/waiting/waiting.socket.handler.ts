@@ -3,10 +3,13 @@ import { Socket } from 'socket.io';
 import WaitingQueueCache from '../../storage/cache/waiting.queue.cache.js';
 import { FastifyBaseLogger } from 'fastify';
 import { tournamentRequestProducer } from '../../kafka/producers/tournament.producer.js';
+import CustomRoomCache from '../../storage/cache/custom.room.cache.js';
+import { customCreateSchema, customCreateType } from './schemas/custom-game.schema.js';
 
 export default class WaitingSocketHandler {
   constructor(
     private readonly waitingQueueCache: WaitingQueueCache,
+    private readonly customRoomCache: CustomRoomCache,
     private readonly logger: FastifyBaseLogger,
   ) {}
 
@@ -34,8 +37,16 @@ export default class WaitingSocketHandler {
     }
   }
 
-  async createCustomRoom(socket: Socket, payload: autoJoinSchemaType) {
+  async createCustomRoom(socket: Socket, payload: customCreateType) {
+    const message = customCreateSchema.parse(payload);
 
+    await this.customRoomCache.createRoom({
+      hostId: socket.data.userId,
+      maxPlayers: message.tournamentSize,
+    });
+    this.logger.info(
+      `User ${socket.data.userId} created custom room with size ${message.tournamentSize}`,
+    );
   }
 
   leaveRoom(socket: Socket) {
