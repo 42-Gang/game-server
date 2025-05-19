@@ -7,7 +7,7 @@ export async function startConsumer(
   tournamentTopicConsumer: TournamentTopicConsumer,
   logger: FastifyBaseLogger,
 ) {
-  const mainConsumer = kafka.consumer({ groupId: 'STATUS', sessionTimeout: 10000 });
+  const mainConsumer = kafka.consumer({ groupId: 'MAIN_GAME_SERVER', sessionTimeout: 10000 });
   const consumers: KafkaTopicConsumer[] = [tournamentTopicConsumer];
 
   await mainConsumer.connect();
