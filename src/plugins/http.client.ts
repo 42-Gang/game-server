@@ -1,14 +1,23 @@
 import got, { ExtendOptions, Got } from 'got';
+import type FormData from 'form-data';
 
-interface HttpRequestOptions {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+interface BaseRequestOptions {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   url: string;
-  body?: unknown;
   queryParams?: Record<string, string | number>;
   headers?: Record<string, string>;
+  throwHttpErrors?: boolean;
 }
 
-class GotClient {
+interface JsonRequestOptions<T extends object = object> extends BaseRequestOptions {
+  body?: T;
+}
+
+interface FormRequestOptions extends BaseRequestOptions {
+  body: FormData;
+}
+
+export class GotClient {
   client: Got;
 
   constructor(options?: ExtendOptions) {
@@ -19,14 +28,30 @@ class GotClient {
     });
   }
 
-  async request<T>(options: HttpRequestOptions) {
+  async requestForm<T>(options: FormRequestOptions) {
+    return this.client<T>(options.url, {
+      method: options.method,
+      body: options.body,
+      searchParams: options.queryParams,
+      headers: options.headers,
+      throwHttpErrors: options.throwHttpErrors ?? false,
+    });
+  }
+
+  async requestJson<T>(options: JsonRequestOptions) {
+    console.log('Request:', options);
     return this.client<T>(options.url, {
       method: options.method,
       json: options.body,
       searchParams: options.queryParams,
       headers: options.headers,
+      throwHttpErrors: options.throwHttpErrors || false,
     });
   }
 }
 
-export const gotClient = new GotClient();
+export const gotClient = new GotClient({
+  get throwHttpErrors() {
+    return false;
+  },
+});
