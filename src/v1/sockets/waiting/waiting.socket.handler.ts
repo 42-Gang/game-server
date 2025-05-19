@@ -1,4 +1,4 @@
-import { autoJoinSchema, customJoinSchemaType } from './schemas/auto-join.schema.js';
+import { autoGameSchema, customJoinSchemaType } from './schemas/auto-game.schema.js';
 import { Socket } from 'socket.io';
 import WaitingQueueCache from '../../storage/cache/waiting.queue.cache.js';
 import { FastifyBaseLogger } from 'fastify';
@@ -11,7 +11,7 @@ export default class WaitingSocketHandler {
   ) {}
 
   async joinAutoRoom(socket: Socket, payload: customJoinSchemaType) {
-    autoJoinSchema.parse(payload);
+    autoGameSchema.parse(payload);
 
     const { tournamentSize } = payload;
 
