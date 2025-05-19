@@ -11,7 +11,6 @@ import {
   customCreateType,
   customInviteSchema,
   customInviteType,
-  customRoomInformationType,
 } from './schemas/custom-game.schema.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from './waiting.event.js';
@@ -120,9 +119,5 @@ export default class WaitingSocketHandler {
       roomId: message.roomId,
       users,
     });
-  }
-
-  private broadcastToRoom(socket: Socket, roomId: string, data: customRoomInformationType) {
-    socket.to(`custom:${roomId}`).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, data);
   }
 }
