@@ -5,8 +5,13 @@ import { autoJoinSchemaType } from './schemas/auto-game.schema.js';
 import WaitingSocketHandler from './waiting.socket.handler.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from './waiting.event.js';
+import { FastifyBaseLogger } from 'fastify';
 
-function registerAutoEvents(socket: Socket, handler: WaitingSocketHandler, logger: any) {
+function registerAutoEvents(
+  socket: Socket,
+  handler: WaitingSocketHandler,
+  logger: FastifyBaseLogger,
+) {
   socket.on(
     SOCKET_EVENTS.AUTO.JOIN,
     socketErrorHandler(socket, logger, (payload: autoJoinSchemaType) =>
@@ -15,7 +20,11 @@ function registerAutoEvents(socket: Socket, handler: WaitingSocketHandler, logge
   );
 }
 
-function registerCustomEvents(socket: Socket, handler: WaitingSocketHandler, logger: any) {
+function registerCustomEvents(
+  socket: Socket,
+  handler: WaitingSocketHandler,
+  logger: FastifyBaseLogger,
+) {
   socket.on(
     SOCKET_EVENTS.CUSTOM.CREATE,
     socketErrorHandler(socket, logger, (payload) => handler.createCustomRoom(socket, payload)),
