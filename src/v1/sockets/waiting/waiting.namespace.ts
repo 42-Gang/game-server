@@ -26,21 +26,21 @@ export function startWaitingNamespace(namespace: Namespace) {
 
     socket.on(
       SOCKET_EVENTS.AUTO.JOIN,
-      socketErrorHandler(logger, (payload: autoJoinSchemaType) =>
+      socketErrorHandler(socket, logger, (payload: autoJoinSchemaType) =>
         waitingSocketHandler.joinAutoRoom(socket, payload),
       ),
     );
 
     socket.on(
       SOCKET_EVENTS.CUSTOM.CREATE,
-      socketErrorHandler(logger, (payload) =>
+      socketErrorHandler(socket, logger, (payload) =>
         waitingSocketHandler.createCustomRoom(socket, payload),
       ),
     );
 
     socket.on(
       SOCKET_EVENTS.CUSTOM.INVITE,
-      socketErrorHandler(logger, (payload) =>
+      socketErrorHandler(socket, logger, (payload) =>
         waitingSocketHandler.inviteCustomRoom(socket, payload),
       ),
     );
