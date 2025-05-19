@@ -15,6 +15,7 @@ import {
 } from './schemas/custom-game.schema.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from './waiting.event.js';
+import UserServiceClient from '../../client/user.service.client.js';
 
 export default class WaitingSocketHandler {
   constructor(
@@ -22,6 +23,7 @@ export default class WaitingSocketHandler {
     private readonly customRoomCache: CustomRoomCache,
     private readonly socketCache: SocketCache,
     private readonly logger: FastifyBaseLogger,
+    private readonly userServiceClient: UserServiceClient,
   ) {}
 
   async joinAutoRoom(socket: Socket, payload: autoJoinSchemaType) {
@@ -104,10 +106,20 @@ export default class WaitingSocketHandler {
     const message = customAcceptSchema.parse(payload);
 
     await this.customRoomCache.addUserToRoom(message.roomId, socket.data.userId);
-    // TODO: 방에 있는 유저들에게 알림
-    // TODO: 들어오는 사용자에게도 알림
-    
+    const userIds = await this.customRoomCache.getUsersInRoom(message.roomId);
+    const users = await Promise.all(
+      userIds.map((userId) => this.userServiceClient.getUserInfo(userId)),
+    );
+
+    socket.to(`custom:${message.roomId}`).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+      roomId: message.roomId,
+      users,
+    });
     socket.join(`custom:${message.roomId}`);
+    socket.emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+      roomId: message.roomId,
+      users,
+    });
   }
 
   private broadcastToRoom(socket: Socket, roomId: string, data: customRoomInformationType) {
