@@ -1,8 +1,8 @@
 import { TypeOf, z } from 'zod';
 import { tournamentSizeSchema } from './tournament.schema.js';
 
-export type customJoinSchemaType = TypeOf<typeof autoGameSchema>;
+export type customJoinSchemaType = TypeOf<typeof autoJoinSchema>;
 
-export const autoGameSchema = z.object({
+export const autoJoinSchema = z.object({
   tournamentSize: tournamentSizeSchema,
 });
