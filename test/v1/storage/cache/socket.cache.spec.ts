@@ -9,9 +9,7 @@ describe('SocketCache (with real Redis)', () => {
     cache = new SocketCache(redis);
   });
 
-  afterAll(async () => {
-    await redis.flushdb();
-  });
+  afterAll(async () => {});
 
   it('setSocketId: 소켓 ID를 Redis에 저장한다', async () => {
     const key = 'socket:testns:1';

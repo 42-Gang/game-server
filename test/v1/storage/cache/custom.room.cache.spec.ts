@@ -20,44 +20,40 @@ describe('CustomRoomCache', () => {
     } as unknown as FastifyBaseLogger;
     cache = new CustomRoomCache(redis, loggerMock);
 
-    await redis.flushdb();
   });
 
-  it('create', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 4,
-      createdAt: Date.now(),
-    });
-
-    const room = await cache.getRoomInfo(roomId);
-    await cache.deleteRoom(roomId);
-    expect(room).toEqual({
-      hostId: 1,
-      maxPlayers: 4,
-      createdAt: room.createdAt,
-    });
-  });
-
-  it('create(already exist)', async () => {
-    const spy = vi.spyOn(redis, 'exists').mockResolvedValueOnce(1);
-
-    await expect(
-      cache.createRoom({
+  describe('createRoom', () => {
+    it('create', async () => {
+      const roomId = await cache.createRoom({
         hostId: 1,
         maxPlayers: 4,
-        createdAt: Date.now(),
-      }),
-    ).rejects.toThrow(Error);
+      });
 
-    spy.mockRestore(); // 원래 Redis.exists 복구
+      const room = await cache.getRoomInfo(roomId);
+      expect(room).toEqual({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+    });
+
+    it('create(already exist)', async () => {
+      const spy = vi.spyOn(redis, 'exists').mockResolvedValueOnce(1);
+
+      await expect(
+        cache.createRoom({
+          hostId: 1,
+          maxPlayers: 4,
+        }),
+      ).rejects.toThrow(Error);
+
+      spy.mockRestore(); // 원래 Redis.exists 복구
+    });
   });
 
   it('getUsers', async () => {
     const roomId = await cache.createRoom({
       hostId: 1,
       maxPlayers: 4,
-      createdAt: Date.now(),
     });
 
     const players = await cache.getUsersInRoom(roomId);
@@ -65,66 +61,63 @@ describe('CustomRoomCache', () => {
     expect(players).toEqual([1]);
   });
 
-  it('join', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 4,
-      createdAt: Date.now(),
+  describe('join', () => {
+    it('join', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      await cache.addInvitedUserToRoom(roomId, 2);
+      await cache.addUserToRoom(roomId, 2);
+      const players = await cache.getUsersInRoom(roomId);
+      await cache.deleteRoom(roomId);
+
+      expect(players).toEqual([1, 2]);
     });
 
-    await cache.addInvitedUserToRoom(roomId, 2);
-    await cache.addUserToRoom(roomId, 2);
-    const players = await cache.getUsersInRoom(roomId);
-    await cache.deleteRoom(roomId);
+    it('join(full)', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 2,
+      });
 
-    expect(players).toEqual([1, 2]);
-  });
+      await cache.addInvitedUserToRoom(roomId, 2);
+      await cache.addUserToRoom(roomId, 2);
+      const players = await cache.getUsersInRoom(roomId);
+      await cache.deleteRoom(roomId);
 
-  it('join(full)', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 2,
-      createdAt: Date.now(),
+      expect(players).toEqual([1, 2]);
     });
 
-    await cache.addInvitedUserToRoom(roomId, 2);
-    await cache.addUserToRoom(roomId, 2);
-    const players = await cache.getUsersInRoom(roomId);
-    await cache.deleteRoom(roomId);
+    it('join(already full)', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 2,
+      });
 
-    expect(players).toEqual([1, 2]);
-  });
+      await cache.addInvitedUserToRoom(roomId, 2);
+      await cache.addUserToRoom(roomId, 2);
 
-  it('join(already full)', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 2,
-      createdAt: Date.now(),
+      await expect(cache.addUserToRoom(roomId, 3)).rejects.toThrow(Error);
+      await cache.deleteRoom(roomId);
     });
 
-    await cache.addInvitedUserToRoom(roomId, 2);
-    await cache.addUserToRoom(roomId, 2);
+    it('join(not invited)', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
 
-    await expect(cache.addUserToRoom(roomId, 3)).rejects.toThrow(Error);
-    await cache.deleteRoom(roomId);
-  });
-
-  it('join(not invited)', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 4,
-      createdAt: Date.now(),
+      await expect(cache.addUserToRoom(roomId, 2)).rejects.toThrow(Error);
+      await cache.deleteRoom(roomId);
     });
-
-    await expect(cache.addUserToRoom(roomId, 2)).rejects.toThrow(Error);
-    await cache.deleteRoom(roomId);
   });
 
   it('removeUser', async () => {
     const roomId = await cache.createRoom({
       hostId: 1,
       maxPlayers: 4,
-      createdAt: Date.now(),
     });
 
     await cache.addInvitedUserToRoom(roomId, 2);
@@ -137,59 +130,58 @@ describe('CustomRoomCache', () => {
     expect(users).toEqual([1]);
   });
 
-  it('deleteRoom', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 4,
-      createdAt: Date.now(),
+  describe('deleteRoom', () => {
+    it('deleteRoom', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      await cache.deleteRoom(roomId);
+
+      await expect(cache.getRoomInfo(roomId)).rejects.toThrow('Room not found');
     });
 
-    await cache.deleteRoom(roomId);
-
-    await expect(cache.getRoomInfo(roomId)).rejects.toThrow('Room not found');
+    it('deleteRoom (does not exist)', async () => {
+      const roomId = 'nonexistent-room-id';
+      await expect(cache.deleteRoom(roomId)).rejects.toThrow(Error);
+    });
   });
 
-  it('deleteRoom (does not exist)', async () => {
-    const roomId = 'nonexistent-room-id';
-    await expect(cache.deleteRoom(roomId)).rejects.toThrow(Error);
-  });
+  describe('isUserInvited', () => {
+    it('isUserInvited (invited)', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
 
-  it('isUserInvited (invited)', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 4,
-      createdAt: Date.now(),
+      await cache.inviteUserToRoom(roomId, 2);
+      const isInvited = await cache.isUserInvited(roomId, 2);
+      await cache.deleteRoom(roomId);
+
+      expect(isInvited).toBe(true);
     });
 
-    await cache.inviteUserToRoom(roomId, 2);
-    const isInvited = await cache.isUserInvited(roomId, 2);
-    await cache.deleteRoom(roomId);
+    it('isUserInvited (not invited)', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
 
-    expect(isInvited).toBe(true);
-  });
+      await cache.inviteUserToRoom(roomId, 2);
+      const isInvited = await cache.isUserInvited(roomId, 3);
+      await cache.deleteRoom(roomId);
 
-  it('isUserInvited (not invited)', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 4,
-      createdAt: Date.now(),
+      expect(isInvited).toBe(false);
     });
-
-    await cache.inviteUserToRoom(roomId, 2);
-    const isInvited = await cache.isUserInvited(roomId, 3);
-    await cache.deleteRoom(roomId);
-
-    expect(isInvited).toBe(false);
   });
 
   it('should have TTL on keys', async () => {
     const roomId = await cache.createRoom({
       hostId: 1,
       maxPlayers: 4,
-      createdAt: Date.now(),
     });
 
-    const redis = (cache as any).redis; // accessing for test
     const ttlRoom = await redis.ttl(`custom-room:${roomId}`);
     const ttlStatus = await redis.ttl(`custom-room:${roomId}:status`);
     const ttlUsers = await redis.ttl(`custom-room:${roomId}:users`);
@@ -199,5 +191,31 @@ describe('CustomRoomCache', () => {
     expect(ttlRoom).toBeGreaterThan(0);
     expect(ttlStatus).toBeGreaterThan(0);
     expect(ttlUsers).toBeGreaterThan(0);
+  });
+
+  describe('isUserHost', () => {
+    it('is user host', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      const isHost = await cache.isUserHost(roomId, 1);
+      await cache.deleteRoom(roomId);
+
+      expect(isHost).toBe(true);
+    });
+
+    it('is not user host', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      const isHost = await cache.isUserHost(roomId, 2);
+      await cache.deleteRoom(roomId);
+
+      expect(isHost).toBe(false);
+    });
   });
 });

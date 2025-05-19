@@ -11,8 +11,6 @@ describe('WaitingQueueCache', () => {
       info: vi.fn(),
     };
     cache = new WaitingQueueCache(redis, loggerMock);
-
-    await redis.flushdb();
   });
 
   it('addToQueue: 유저를 큐에 추가한다', async () => {
@@ -37,7 +35,8 @@ describe('WaitingQueueCache', () => {
     await cache.addUser(4, 125);
     await cache.addUser(4, 126);
 
-    await expect(cache.isQueueReady(4)).resolves.toBe(true);
+    const result = await cache.isQueueReady(4);
+    expect(result).toBe(true);
   });
 
   it('canStartGame: 큐에 인원이 부족하면 false 반환', async () => {
