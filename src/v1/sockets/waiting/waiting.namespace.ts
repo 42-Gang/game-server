@@ -27,8 +27,13 @@ export function startWaitingNamespace(namespace: Namespace) {
     socket.on(
       SOCKET_EVENTS.AUTO.JOIN,
       socketErrorHandler(logger, (payload: customJoinSchemaType) =>
-        waitingSocketHandler.joinRoom(socket, payload),
+        waitingSocketHandler.joinAutoRoom(socket, payload),
       ),
+    );
+
+    socket.on(
+      SOCKET_EVENTS.CUSTOM.CREATE,
+      socketErrorHandler(logger, (payload) => {}),
     );
 
     // TODO: 나가기 기능 추가

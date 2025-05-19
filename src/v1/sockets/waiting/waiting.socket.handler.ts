@@ -10,7 +10,7 @@ export default class WaitingSocketHandler {
     private readonly logger: FastifyBaseLogger,
   ) {}
 
-  async joinRoom(socket: Socket, payload: customJoinSchemaType) {
+  async joinAutoRoom(socket: Socket, payload: customJoinSchemaType) {
     customJoinSchema.parse(payload);
 
     const { tournamentSize } = payload;
