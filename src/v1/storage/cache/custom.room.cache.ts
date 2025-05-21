@@ -144,6 +144,9 @@ export default class CustomRoomCache {
       return;
     }
 
+    // TODO: custom:user 부분 삭제가 안되고 있음.
+    // TODO: custom:roomtId:invited 부분이 삭제가 안되고 있음.
+
     this.removeUserFromRoom(roomId, userId);
   }
 
