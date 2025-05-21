@@ -87,6 +87,11 @@ export default class CustomRoomCache {
     return JSON.parse(raw);
   }
 
+  async isRoomHost(roomId: string, userId: number): Promise<boolean> {
+    const room = await this.getRoomInfo(roomId);
+    return room.hostId === userId;
+  }
+
   async getUsersInRoom(roomId: string): Promise<number[]> {
     const key = this.getUsersKey(roomId);
     const userIds = await this.redisClient.smembers(key);

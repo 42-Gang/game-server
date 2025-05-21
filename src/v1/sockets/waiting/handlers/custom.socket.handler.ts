@@ -91,7 +91,9 @@ export default class CustomSocketHandler {
   async startCustomRoom(socket: Socket, payload: customStartType) {
     const message = customStartSchema.parse(payload);
 
-    await this.customRoomCache.getRoomInfo(message.roomId);
+    if (!(await this.customRoomCache.isRoomHost(message.roomId, socket.data.userId))) {
+      throw new Error('You are not the host of this room');
+    }
 
     const userIds = await this.customRoomCache.getUsersInRoom(message.roomId);
     await tournamentRequestProducer({
