@@ -7,12 +7,15 @@ import {
   customInviteType,
   customAcceptSchema,
   customAcceptType,
+  customStartType,
+  customStartSchema,
 } from '../schemas/custom-game.schema.js';
 import { SOCKET_EVENTS } from '../waiting.event.js';
 import CustomRoomCache from '../../../storage/cache/custom.room.cache.js';
 import SocketCache from '../../../storage/cache/socket.cache.js';
 import { FastifyBaseLogger } from 'fastify';
 import UserServiceClient from '../../../client/user.service.client.js';
+import { tournamentRequestProducer } from '../../../kafka/producers/tournament.producer.js';
 
 export default class CustomSocketHandler {
   constructor(
@@ -82,6 +85,20 @@ export default class CustomSocketHandler {
     socket.join(`custom:${message.roomId}`);
     socket.emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
       users,
+    });
+  }
+
+  async startCustomRoom(socket: Socket, payload: customStartType) {
+    const message = customStartSchema.parse(payload);
+
+    await this.customRoomCache.getRoomInfo(message.roomId);
+
+    const userIds = await this.customRoomCache.getUsersInRoom(message.roomId);
+    await tournamentRequestProducer({
+      size: message.tournamentSize,
+      mode: 'CUSTOM',
+      players: userIds,
+      timestamp: new Date().toISOString(),
     });
   }
 }

@@ -8,6 +8,7 @@ export const SOCKET_EVENTS = {
     JOIN: 'custom-join',
     INVITE: 'custom-invite',
     ACCEPT: 'custom-accept',
+    START: 'custom-start',
   },
 
   WAITING_ROOM_UPDATE: 'waiting-room-update',

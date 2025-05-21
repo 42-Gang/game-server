@@ -35,6 +35,10 @@ function registerCustomEvents(
     SOCKET_EVENTS.CUSTOM.ACCEPT,
     socketErrorHandler(socket, logger, (payload) => handler.acceptCustomRoom(socket, payload)),
   );
+  socket.on(
+    SOCKET_EVENTS.CUSTOM.START,
+    socketErrorHandler(socket, logger, (payload) => handler.startCustomRoom(socket, payload)),
+  );
 }
 
 export function startWaitingNamespace(namespace: Namespace) {

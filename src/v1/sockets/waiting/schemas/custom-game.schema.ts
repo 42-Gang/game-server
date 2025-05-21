@@ -32,3 +32,10 @@ export const customRoomInformationSchema = z.object({
     }),
   ),
 });
+
+export type customStartType = TypeOf<typeof customStartSchema>;
+
+export const customStartSchema = z.object({
+  roomId: z.string(),
+  tournamentSize: tournamentSizeSchema,
+});
