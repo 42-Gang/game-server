@@ -19,7 +19,6 @@ describe('CustomRoomCache', () => {
       silent: vi.fn(() => loggerMock),
     } as unknown as FastifyBaseLogger;
     cache = new CustomRoomCache(redis, loggerMock);
-
   });
 
   describe('createRoom', () => {
@@ -207,6 +206,32 @@ describe('CustomRoomCache', () => {
     });
 
     it('is not user host', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      const isHost = await cache.isUserHost(roomId, 2);
+      await cache.deleteRoom(roomId);
+
+      expect(isHost).toBe(false);
+    });
+  });
+
+  describe('isHost', () => {
+    it('isHost', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      const isHost = await cache.isUserHost(roomId, 1);
+      await cache.deleteRoom(roomId);
+
+      expect(isHost).toBe(true);
+    });
+
+    it('is not host', async () => {
       const roomId = await cache.createRoom({
         hostId: 1,
         maxPlayers: 4,
