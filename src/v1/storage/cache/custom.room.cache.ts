@@ -8,7 +8,8 @@ interface RoomInfo {
 }
 
 export default class CustomRoomCache {
-  ttl = 60 * 10;
+  private readonly CUSTOM_USERS = 'custom:users';
+  private readonly ttl = 60 * 10;
 
   constructor(
     private readonly redisClient: Redis,
@@ -45,7 +46,7 @@ export default class CustomRoomCache {
       this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl),
       this.redisClient.sadd(this.getUsersKey(roomId), room.hostId),
       this.redisClient.expire(this.getUsersKey(roomId), this.ttl),
-      this.redisClient.hset('custom:users', room.hostId, roomId),
+      this.redisClient.hset(this.CUSTOM_USERS, room.hostId, roomId),
     ]);
     this.logger.info(`Created custom room ${roomId} with host ${room.hostId}`);
     return roomId;
@@ -62,7 +63,7 @@ export default class CustomRoomCache {
     const usersKey = this.getUsersKey(roomId);
     await this.redisClient.sadd(usersKey, String(userId));
 
-    await this.redisClient.hset('custom:users', userId, roomId);
+    await this.redisClient.hset(this.CUSTOM_USERS, userId, roomId);
     this.logger.info(`User ${userId} joined room ${roomId}`);
   }
 
@@ -122,7 +123,7 @@ export default class CustomRoomCache {
   async removeUserFromRoom(roomId: string, userId: number): Promise<void> {
     const usersKey = this.getUsersKey(roomId);
     await this.redisClient.srem(usersKey, String(userId));
-    await this.redisClient.hdel('custom:users', String(userId));
+    await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
     this.logger.info(`User ${userId} left room ${roomId}`);
 
     const userCount = await this.redisClient.scard(usersKey);
@@ -139,7 +140,7 @@ export default class CustomRoomCache {
   }
 
   async disconnectedUser(userId: number): Promise<void> {
-    const roomId = await this.redisClient.hget('custom:users', String(userId));
+    const roomId = await this.redisClient.hget(this.CUSTOM_USERS, String(userId));
     if (!roomId) {
       return;
     }
