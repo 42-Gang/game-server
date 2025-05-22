@@ -159,6 +159,7 @@ export default class CustomRoomCache {
     this.removeUserFromRoom(roomId, userId);
 
     // TODO: 나갈때 사람들에게 알림을 보내야함.
+    // TODO: 나갈때 방장 변경.
   }
 
   async deleteRoom(roomId: string): Promise<void> {
