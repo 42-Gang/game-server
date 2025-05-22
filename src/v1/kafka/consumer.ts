@@ -8,12 +8,15 @@ export async function startConsumer(
   logger: FastifyBaseLogger,
 ) {
   const mainConsumer = kafka.consumer({ groupId: 'MAIN_GAME_SERVER', sessionTimeout: 10000 });
-  const consumers: KafkaTopicConsumer[] = [tournamentTopicConsumer];
+  const topicConsumers: KafkaTopicConsumer[] = [tournamentTopicConsumer];
 
   await mainConsumer.connect();
 
-  for (const consumer of consumers) {
-    await mainConsumer.subscribe({ topic: consumer.topic, fromBeginning: consumer.fromBeginning });
+  for (const topicConsumer of topicConsumers) {
+    await mainConsumer.subscribe({
+      topic: topicConsumer.topic,
+      fromBeginning: topicConsumer.fromBeginning,
+    });
   }
 
   await mainConsumer.run({
@@ -22,7 +25,7 @@ export async function startConsumer(
         return console.warn(`Null message received on topic ${topic}`);
       }
 
-      const handler = consumers.find((h) => h.topic === topic);
+      const handler = topicConsumers.find((h) => h.topic === topic);
       if (!handler) {
         return console.warn(`No handler found for topic ${topic}`);
       }
