@@ -65,6 +65,8 @@ export default class CustomRoomCache {
     await this.redisClient.sadd(usersKey, String(userId));
     await this.redisClient.expire(usersKey, this.ttl);
 
+    await this.redisClient.srem(this.getInvitedKey(roomId), String(userId));
+
     await this.redisClient.hset(this.CUSTOM_USERS, userId, roomId);
     await this.redisClient.expire(this.CUSTOM_USERS, this.ttl);
     this.logger.info(`User ${userId} joined room ${roomId}`);
@@ -154,10 +156,9 @@ export default class CustomRoomCache {
       return;
     }
 
-    // TODO: custom:user 부분 삭제가 안되고 있음.
-    // TODO: custom:roomtId:invited 부분이 삭제가 안되고 있음.
-
     this.removeUserFromRoom(roomId, userId);
+
+    // TODO: 나갈때 사람들에게 알림을 보내야함.
   }
 
   async deleteRoom(roomId: string): Promise<void> {
