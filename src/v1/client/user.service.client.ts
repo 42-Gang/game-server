@@ -21,7 +21,7 @@ export default class UserServiceClient {
       headers: {
         'x-internal': 'true',
         'x-authenticated': 'true',
-        'x-user-id': '10',
+        'x-user-id': userId.toString(),
       },
     });
 
