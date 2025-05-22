@@ -9,14 +9,14 @@ export function socketErrorHandler<Args extends unknown[], Return>(
 ): (...args: Args) => void {
   const handleError = (err: unknown) => {
     if (err instanceof ZodError) {
-      logger.error(err.message, 'ZodError');
+      logger.error(err, 'ZodError');
       socket.emit('error', {
         message: err.message,
       });
       return;
     }
     if (err instanceof Error) {
-      logger.error(err.message, 'Socket error');
+      logger.error(err, 'Socket error');
       socket.emit('error', {
         message: err.message,
       });
