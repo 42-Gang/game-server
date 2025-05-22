@@ -15,6 +15,8 @@ import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from '../../sockets/waiting/waiting.event.js';
 import { tournamentCreatedProducer } from '../producers/tournament.producer.js';
 import UserServiceClient from '../../client/user.service.client.js';
+import TournamentCache from '../../storage/cache/tournament.cache.js';
+import { tournamentSizeSchema } from '../../sockets/waiting/schemas/tournament.schema.js';
 
 interface tournamentCreateParams {
   tx: Prisma.TransactionClient;
@@ -36,6 +38,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     private readonly waitingNamespace: Namespace,
     private readonly socketCache: SocketCache,
     private readonly userServiceClient: UserServiceClient,
+    private readonly tournamentCache: TournamentCache,
   ) {}
 
   async handle(messageValue: string): Promise<void> {
@@ -92,8 +95,20 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
 
   private async requestTournament(message: requestTournamentMessageType) {
     const tournament = await this.createTournamentInDatabase(message);
-    // TODO: Redis에 토너먼트 방 정보 저장 및 초기화
 
+    const parsedSize = tournamentSizeSchema.safeParse(tournament.size);
+    if (!parsedSize.success) {
+      this.logger.error(parsedSize.error, '토너먼트 사이즈 오류:');
+      throw new Error('토너먼트 사이즈 오류');
+    }
+
+    const players = await this.playerRepository.findManyByTournamentId(tournament.id);
+    await this.tournamentCache.createTournament({
+      tournamentId: tournament.id,
+      mode: tournament.mode,
+      size: parsedSize.data,
+      playerIds: players.map((player) => player.userId),
+    });
     tournamentCreatedProducer({
       mode: message.mode,
       size: message.size,
