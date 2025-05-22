@@ -39,7 +39,6 @@ export class GotClient {
   }
 
   async requestJson<T>(options: JsonRequestOptions) {
-    console.log('Request:', options);
     return this.client<T>(options.url, {
       method: options.method,
       json: options.body,
