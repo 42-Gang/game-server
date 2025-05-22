@@ -12,13 +12,6 @@ enum GameMode {
   AUTO
 }
 
-enum TournamentSize {
-  ROUND_2
-  ROUND_4
-  ROUND_8
-  ROUND_16
-}
-
 enum Status {
   NOT_STARTED
   INPROGRESS
