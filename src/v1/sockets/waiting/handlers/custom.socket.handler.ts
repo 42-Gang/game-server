@@ -103,4 +103,23 @@ export default class CustomSocketHandler {
       timestamp: new Date().toISOString(),
     });
   }
+
+  async leaveRoom(socket: Socket) {
+    const roomId = await this.customRoomCache.getRoomIdByUserId(socket.data.userId);
+
+    if (!roomId) {
+      this.logger.error(`User ${socket.data.userId} is not in any custom room`);
+      return;
+    }
+
+    const userIds = await this.customRoomCache.getUsersInRoom(roomId);
+    const users = await Promise.all(
+      userIds.map((userId) => this.userServiceClient.getUserInfo(userId)),
+    );
+    socket.leave(`custom:${roomId}`);
+    socket.to(`custom:${roomId}`).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+      roomId,
+      users,
+    });
+  }
 }

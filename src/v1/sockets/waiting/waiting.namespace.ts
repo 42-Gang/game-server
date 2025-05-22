@@ -75,6 +75,7 @@ export function startWaitingNamespace(namespace: Namespace) {
         namespace: 'waiting',
         userId: userId,
       });
+      customSocketHandler.leaveRoom(socket);
     });
 
     socket.on('error', (error: Error) => {

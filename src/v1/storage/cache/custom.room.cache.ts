@@ -150,8 +150,16 @@ export default class CustomRoomCache {
     }
   }
 
-  async disconnectedUser(userId: number): Promise<void> {
+  async getRoomIdByUserId(userId: number): Promise<string | null> {
     const roomId = await this.redisClient.hget(this.CUSTOM_USERS, String(userId));
+    if (!roomId) {
+      return null;
+    }
+    return roomId;
+  }
+
+  async disconnectedUser(userId: number): Promise<void> {
+    const roomId = await this.getRoomIdByUserId(userId);
     if (!roomId) {
       return;
     }
