@@ -42,7 +42,8 @@ export default class CustomRoomCache {
     }
 
     await Promise.all([
-      this.redisClient.set(key, JSON.stringify(room), 'EX', this.ttl),
+      this.redisClient.hset(key, 'hostId', room.hostId, 'maxPlayers', room.maxPlayers),
+      this.redisClient.expire(key, this.ttl),
       this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl),
       this.redisClient.sadd(this.getUsersKey(roomId), room.hostId),
       this.redisClient.expire(this.getUsersKey(roomId), this.ttl),
@@ -85,13 +86,16 @@ export default class CustomRoomCache {
   }
 
   async getRoomInfo(roomId: string): Promise<RoomInfo> {
-    const raw = await this.redisClient.get(this.getRoomKey(roomId));
-    if (!raw) {
-      this.logger.error(`Room ${roomId} not found`);
-      throw new Error('Room not found');
+    const roomKey = this.getRoomKey(roomId);
+    const room = await this.redisClient.hgetall(roomKey);
+    if (!room) {
+      this.logger.error(`Room ${roomId} does not exist`);
+      throw new Error('Room does not exist');
     }
-
-    return JSON.parse(raw);
+    return {
+      hostId: Number(room.hostId),
+      maxPlayers: Number(room.maxPlayers),
+    };
   }
 
   async isRoomHost(roomId: string, userId: number): Promise<boolean> {
@@ -166,7 +170,6 @@ export default class CustomRoomCache {
 
     this.removeUserFromRoom(roomId, userId);
 
-    // TODO: 나갈때 사람들에게 알림을 보내야함.
     // TODO: 나갈때 방장 변경.
   }
 
