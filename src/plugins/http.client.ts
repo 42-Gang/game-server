@@ -44,7 +44,7 @@ export class GotClient {
       json: options.body,
       searchParams: options.queryParams,
       headers: options.headers,
-      throwHttpErrors: options.throwHttpErrors || false,
+      throwHttpErrors: options.throwHttpErrors ?? false,
     });
   }
 }
