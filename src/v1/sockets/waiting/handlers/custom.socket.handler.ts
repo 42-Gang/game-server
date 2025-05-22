@@ -123,4 +123,8 @@ export default class CustomSocketHandler {
       users,
     });
   }
+
+  async leaveCustomRoom(socket: Socket) {
+    await this.leaveRoom(socket);
+  }
 }

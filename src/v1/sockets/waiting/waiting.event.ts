@@ -9,6 +9,7 @@ export const SOCKET_EVENTS = {
     INVITE: 'custom-invite',
     ACCEPT: 'custom-accept',
     START: 'custom-start',
+    LEAVE: 'custom-leave',
   },
 
   WAITING_ROOM_UPDATE: 'waiting-room-update',
