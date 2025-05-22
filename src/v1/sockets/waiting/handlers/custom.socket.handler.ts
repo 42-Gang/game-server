@@ -112,6 +112,7 @@ export default class CustomSocketHandler {
       return;
     }
 
+    await this.customRoomCache.removeUserFromRoom(roomId, socket.data.userId);
     const userIds = await this.customRoomCache.getUsersInRoom(roomId);
     const users = await Promise.all(
       userIds.map((userId) => this.userServiceClient.getUserInfo(userId)),

@@ -24,6 +24,10 @@ export default class CustomRoomCache {
     return `${this.getRoomKey(roomId)}:users`;
   }
 
+  private getOrderedUsersKey(roomId: string): string {
+    return `${this.getRoomKey(roomId)}:users:ordered`;
+  }
+
   private getStatusKey(roomId: string): string {
     return `${this.getRoomKey(roomId)}:status`;
   }
@@ -47,6 +51,8 @@ export default class CustomRoomCache {
       this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl),
       this.redisClient.sadd(this.getUsersKey(roomId), room.hostId),
       this.redisClient.expire(this.getUsersKey(roomId), this.ttl),
+      this.redisClient.rpush(this.getOrderedUsersKey(roomId), String(room.hostId)),
+      this.redisClient.expire(this.getOrderedUsersKey(roomId), this.ttl),
       this.redisClient.hset(this.CUSTOM_USERS, room.hostId, roomId),
       this.redisClient.expire(this.CUSTOM_USERS, this.ttl),
     ]);
@@ -66,6 +72,10 @@ export default class CustomRoomCache {
     await this.redisClient.sadd(usersKey, String(userId));
     await this.redisClient.expire(usersKey, this.ttl);
 
+    const orderedUsersKey = this.getOrderedUsersKey(roomId);
+    await this.redisClient.rpush(orderedUsersKey, String(userId));
+    await this.redisClient.expire(orderedUsersKey, this.ttl);
+
     await this.redisClient.srem(this.getInvitedKey(roomId), String(userId));
 
     await this.redisClient.hset(this.CUSTOM_USERS, userId, roomId);
@@ -77,6 +87,7 @@ export default class CustomRoomCache {
     const usersKey = this.getInvitedKey(roomId);
     await this.redisClient.sadd(usersKey, String(userId));
     await this.redisClient.expire(usersKey, this.ttl);
+
     this.logger.info(`User ${userId} invited room ${roomId}`);
   }
 
@@ -144,7 +155,7 @@ export default class CustomRoomCache {
     const userCount = await this.redisClient.scard(usersKey);
     const room = await this.getRoomInfo(roomId);
     if (userCount < room.maxPlayers) {
-      await this.redisClient.set(this.getStatusKey(roomId), 'WAITING');
+      await this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl);
       this.logger.info(`Room ${roomId} is now WAITING`);
     }
 
@@ -168,9 +179,20 @@ export default class CustomRoomCache {
       return;
     }
 
+    if (
+      (await this.isUserHost(roomId, userId)) &&
+      0 < (await this.getNumberOfUsersInRoom(roomId))
+    ) {
+      await this.redisClient.lpop(this.getOrderedUsersKey(roomId));
+      const nextHostId = await this.redisClient.lindex(this.getOrderedUsersKey(roomId), 0);
+      await this.changeRoomHost(roomId, Number(nextHostId));
+    }
     this.removeUserFromRoom(roomId, userId);
+  }
 
-    // TODO: 나갈때 방장 변경.
+  async changeRoomHost(roomId: string, newHostId: number): Promise<void> {
+    const roomKey = this.getRoomKey(roomId);
+    await this.redisClient.hset(roomKey, 'hostId', newHostId);
   }
 
   async deleteRoom(roomId: string): Promise<void> {
@@ -178,7 +200,7 @@ export default class CustomRoomCache {
     const exists = await this.redisClient.exists(key);
     if (!exists) {
       this.logger.error(`Room ${roomId} does not exist`);
-      throw new Error('Room does not exist');
+      return;
     }
 
     await Promise.all([
