@@ -47,6 +47,7 @@ export default class CustomRoomCache {
       this.redisClient.sadd(this.getUsersKey(roomId), room.hostId),
       this.redisClient.expire(this.getUsersKey(roomId), this.ttl),
       this.redisClient.hset(this.CUSTOM_USERS, room.hostId, roomId),
+      this.redisClient.expire(this.CUSTOM_USERS, this.ttl),
     ]);
     this.logger.info(`Created custom room ${roomId} with host ${room.hostId}`);
     return roomId;
@@ -62,14 +63,17 @@ export default class CustomRoomCache {
 
     const usersKey = this.getUsersKey(roomId);
     await this.redisClient.sadd(usersKey, String(userId));
+    await this.redisClient.expire(usersKey, this.ttl);
 
     await this.redisClient.hset(this.CUSTOM_USERS, userId, roomId);
+    await this.redisClient.expire(this.CUSTOM_USERS, this.ttl);
     this.logger.info(`User ${userId} joined room ${roomId}`);
   }
 
   async addInvitedUserToRoom(roomId: string, userId: number): Promise<void> {
     const usersKey = this.getInvitedKey(roomId);
     await this.redisClient.sadd(usersKey, String(userId));
+    await this.redisClient.expire(usersKey, this.ttl);
     this.logger.info(`User ${userId} invited room ${roomId}`);
   }
 
@@ -117,12 +121,17 @@ export default class CustomRoomCache {
   async inviteUserToRoom(roomId: string, userId: number): Promise<void> {
     const key = this.getInvitedKey(roomId);
     await this.redisClient.sadd(key, userId);
+    await this.redisClient.expire(key, this.ttl);
     this.logger.info(`User ${userId} invited to room ${roomId}`);
   }
 
   async removeUserFromRoom(roomId: string, userId: number): Promise<void> {
     const usersKey = this.getUsersKey(roomId);
-    await this.redisClient.srem(usersKey, String(userId));
+    await this.redisClient.srem(this.getUsersKey(roomId), String(userId));
+
+    const invitedKey = this.getInvitedKey(roomId);
+    await this.redisClient.srem(invitedKey, String(userId));
+
     await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
     this.logger.info(`User ${userId} left room ${roomId}`);
 
