@@ -1,4 +1,3 @@
-// src/v1/sockets/waiting/handlers/custom.handler.ts
 import { Socket } from 'socket.io';
 import {
   customCreateSchema,
