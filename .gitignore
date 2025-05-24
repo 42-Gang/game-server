@@ -145,6 +145,4 @@ uploads/tasks/*
 .DS_Store
 .gitmessage.txt
 
-prisma/migrations
-
 .idea

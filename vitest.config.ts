@@ -10,6 +10,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
     },
+    sequence: {
+      concurrent: false,
+    },
     setupFiles: ['./test/vitest.setup.ts'],
   },
 });

@@ -12,7 +12,6 @@ export async function socketMiddleware(socket: Socket, next: NextFunction) {
     }
 
     const { status, userId } = await verifyAccessToken(token);
-
     if (status !== 200) return next(new UnAuthorizedException('인증되지 않은 사용자입니다.'));
 
     socket.data.userId = Number(userId);

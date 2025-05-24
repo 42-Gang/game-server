@@ -1,16 +1,16 @@
 import { Server } from 'socket.io';
 import { asValue, AwilixContainer } from 'awilix';
-import startChatNamespace from './chat/startChatNamespace.js';
 import { socketMiddleware } from './utils/middleware.js';
+import { startWaitingNamespace } from './waiting/waiting.namespace.js';
 
 export const registerSocketGateway = (diContainer: AwilixContainer, io: Server) => {
   io.use(socketMiddleware);
 
-  const chatNamespace = io.of('/chat');
+  const waitingNamespace = io.of('/waiting');
 
   diContainer.register({
-    chatNamespace: asValue(chatNamespace),
+    waitingNamespace: asValue(waitingNamespace),
   });
 
-  startChatNamespace(io.of('/chat'));
+  startWaitingNamespace(waitingNamespace);
 };
