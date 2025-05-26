@@ -181,13 +181,13 @@ export default class CustomRoomCache {
 
     if (
       (await this.isUserHost(roomId, userId)) &&
-      0 < (await this.getNumberOfUsersInRoom(roomId))
+      2 <= (await this.getNumberOfUsersInRoom(roomId))
     ) {
       await this.popFromOrderedUsers(roomId);
       const nextHostId = await this.getNextHostIdFromOrderedUsers(roomId);
       await this.changeRoomHost(roomId, Number(nextHostId));
     }
-    this.removeUserFromRoom(roomId, userId);
+    await this.removeUserFromRoom(roomId, userId);
   }
 
   private async getNextHostIdFromOrderedUsers(roomId: string) {
