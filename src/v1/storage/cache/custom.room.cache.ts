@@ -131,11 +131,6 @@ export default class CustomRoomCache {
     };
   }
 
-  async isRoomHost(roomId: string, userId: number): Promise<boolean> {
-    const room = await this.getRoomInfo(roomId);
-    return room.hostId === userId;
-  }
-
   async getUsersInRoom(roomId: string): Promise<number[]> {
     const key = this.getUsersKey(roomId);
     const userIds = await this.redisClient.smembers(key);
@@ -152,7 +147,7 @@ export default class CustomRoomCache {
     return (await this.redisClient.sismember(key, userId)) === 1;
   }
 
-  async isUserHost(roomId: string, userId: number): Promise<boolean> {
+  async isRoomHost(roomId: string, userId: number): Promise<boolean> {
     const room = await this.getRoomInfo(roomId);
     return room.hostId === userId;
   }
@@ -202,7 +197,7 @@ export default class CustomRoomCache {
     }
 
     if (
-      (await this.isUserHost(roomId, userId)) &&
+      (await this.isRoomHost(roomId, userId)) &&
       2 <= (await this.getNumberOfUsersInRoom(roomId))
     ) {
       await this.popFromOrderedUsers(roomId);

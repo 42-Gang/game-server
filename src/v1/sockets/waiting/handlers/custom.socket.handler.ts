@@ -43,7 +43,7 @@ export default class CustomSocketHandler {
   async inviteCustomRoom(socket: Socket, payload: customInviteType) {
     const message = customInviteSchema.parse(payload);
 
-    if (!(await this.customRoomCache.isUserHost(message.roomId, socket.data.userId))) {
+    if (!(await this.customRoomCache.isRoomHost(message.roomId, socket.data.userId))) {
       throw new Error('You are not the host of this room');
     }
     if ((await this.customRoomCache.getUsersInRoom(message.roomId)).includes(payload.userId)) {
