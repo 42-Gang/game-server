@@ -8,7 +8,7 @@ describe('CustomRoomCache', () => {
 
   beforeEach(async () => {
     const loggerMock = {
-      info: vi.fn(),
+      info: vi.fn((x) => console.log(x)),
       error: vi.fn(),
       warn: vi.fn(),
       debug: vi.fn(),
@@ -98,6 +98,7 @@ describe('CustomRoomCache', () => {
       await cache.addInvitedUserToRoom(roomId, 2);
       await cache.addUserToRoom(roomId, 2);
 
+      await cache.addInvitedUserToRoom(roomId, 3);
       await expect(cache.addUserToRoom(roomId, 3)).rejects.toThrow(Error);
       await cache.deleteRoom(roomId);
     });

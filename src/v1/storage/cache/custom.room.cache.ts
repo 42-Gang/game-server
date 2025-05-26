@@ -82,7 +82,7 @@ export default class CustomRoomCache {
     
       local current = redis.call('SCARD', KEYS[1])
       if tonumber(current) >= tonumber(ARGV[1]) then
-        return {err="ROOM_FULL"}      -- 남은 자리가 없으면 에러 리턴
+        return "ROOM_FULL"      -- 남은 자리가 없으면 에러 리턴
       end
     
       -- 자리 있으면 추가
@@ -101,6 +101,8 @@ export default class CustomRoomCache {
       maxPlayers,
       String(userId),
     );
+
+    this.logger.info(`result: ${result}`);
 
     if (result === 'ROOM_FULL') {
       this.logger.error(`Room ${roomId} is full`);
