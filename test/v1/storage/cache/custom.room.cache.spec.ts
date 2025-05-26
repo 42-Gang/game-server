@@ -244,4 +244,32 @@ describe('CustomRoomCache', () => {
       expect(isHost).toBe(false);
     });
   });
+
+  describe('getNumberOfUsersInRoom', () => {
+    it('should return the number of users in the room', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      await cache.addInvitedUserToRoom(roomId, 2);
+      await cache.addUserToRoom(roomId, 2);
+      const userCount = await cache.getNumberOfUsersInRoom(roomId);
+      await cache.deleteRoom(roomId);
+
+      expect(userCount).toBe(2);
+    });
+
+    it('should return 0 for an empty room', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      const userCount = await cache.getNumberOfUsersInRoom(roomId);
+      await cache.deleteRoom(roomId);
+
+      expect(userCount).toBe(1); // Only the host is present
+    });
+  });
 });
