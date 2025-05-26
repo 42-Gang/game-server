@@ -99,7 +99,7 @@ export default class CustomRoomCache {
   async getRoomInfo(roomId: string): Promise<RoomInfo> {
     const roomKey = this.getRoomKey(roomId);
     const room = await this.redisClient.hgetall(roomKey);
-    if (!room) {
+    if (!room || Object.keys(room).length === 0) {
       this.logger.error(`Room ${roomId} does not exist`);
       throw new Error('Room does not exist');
     }
@@ -207,8 +207,7 @@ export default class CustomRoomCache {
     const key = this.getRoomKey(roomId);
     const exists = await this.redisClient.exists(key);
     if (!exists) {
-      this.logger.error(`Room ${roomId} does not exist`);
-      return;
+      throw new Error('Room not found');
     }
 
     await Promise.all([

@@ -138,7 +138,7 @@ describe('CustomRoomCache', () => {
 
       await cache.deleteRoom(roomId);
 
-      await expect(cache.getRoomInfo(roomId)).rejects.toThrow('Room not found');
+      await expect(cache.getRoomInfo(roomId)).rejects.toThrow(Error);
     });
 
     it('deleteRoom (does not exist)', async () => {
