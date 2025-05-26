@@ -66,26 +66,46 @@ export default class CustomRoomCache {
   }
 
   async addUserToRoom(roomId: string, userId: number): Promise<void> {
-    if (await this.isRoomFull(roomId)) {
-      throw new Error('Room is full');
-    }
-    if (!(await this.isUserInvited(roomId, userId))) {
-      throw new Error('User is not invited');
-    }
-
     const usersKey = this.getUsersKey(roomId);
-    await this.redisClient.sadd(usersKey, String(userId));
-    await this.redisClient.expire(usersKey, this.ttl);
+    const orderedKey = this.getOrderedUsersKey(roomId);
 
-    const orderedUsersKey = this.getOrderedUsersKey(roomId);
-    await this.redisClient.rpush(orderedUsersKey, String(userId));
-    await this.redisClient.expire(orderedUsersKey, this.ttl);
+    if (!(await this.isUserInvited(roomId, userId))) {
+      this.logger.error(`User ${userId} is not invited to room ${roomId}`);
+      throw new Error('User is not invited to this room');
+    }
 
-    await this.redisClient.srem(this.getInvitedKey(roomId), String(userId));
+    const addUser = `
+      -- KEYS[1] : usersKey (Set)
+      -- KEYS[2] : orderedKey (List)
+      -- ARGV[1] : maxPlayers
+      -- ARGV[2] : userId
+    
+      local current = redis.call('SCARD', KEYS[1])
+      if tonumber(current) >= tonumber(ARGV[1]) then
+        return {err="ROOM_FULL"}      -- 남은 자리가 없으면 에러 리턴
+      end
+    
+      -- 자리 있으면 추가
+      redis.call('SADD', KEYS[1], ARGV[2])
+      redis.call('RPUSH', KEYS[2], ARGV[2])
+      return {ok="OK"}                 -- 성공 리턴
+    `;
 
-    await this.redisClient.hset(this.CUSTOM_USERS, userId, roomId);
-    await this.redisClient.expire(this.CUSTOM_USERS, this.ttl);
-    this.logger.info(`User ${userId} joined room ${roomId}`);
+    const room = await this.getRoomInfo(roomId);
+    const maxPlayers = room.maxPlayers;
+    const result = await this.redisClient.eval(
+      addUser,
+      2,
+      usersKey,
+      orderedKey,
+      maxPlayers,
+      String(userId),
+    );
+
+    if (result && result.err) {
+      this.logger.error(`Failed to add user ${userId} to room ${roomId}: ${result.err}`);
+      throw new Error(result.err);
+    }
   }
 
   async addInvitedUserToRoom(roomId: string, userId: number): Promise<void> {
@@ -96,7 +116,7 @@ export default class CustomRoomCache {
     this.logger.info(`User ${userId} invited room ${roomId}`);
   }
 
-  private async isRoomFull(roomId: string) {
+  private async _isRoomFull(roomId: string) {
     const room = await this.getRoomInfo(roomId);
     return room.maxPlayers === (await this.getNumberOfUsersInRoom(roomId));
   }
