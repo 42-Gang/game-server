@@ -183,11 +183,15 @@ export default class CustomRoomCache {
       (await this.isUserHost(roomId, userId)) &&
       0 < (await this.getNumberOfUsersInRoom(roomId))
     ) {
-      await this.redisClient.lpop(this.getOrderedUsersKey(roomId));
+      await this.popFromOrderedUsers(roomId);
       const nextHostId = await this.redisClient.lindex(this.getOrderedUsersKey(roomId), 0);
       await this.changeRoomHost(roomId, Number(nextHostId));
     }
     this.removeUserFromRoom(roomId, userId);
+  }
+
+  private async popFromOrderedUsers(roomId: string) {
+    await this.redisClient.lpop(this.getOrderedUsersKey(roomId));
   }
 
   async changeRoomHost(roomId: string, newHostId: number): Promise<void> {
