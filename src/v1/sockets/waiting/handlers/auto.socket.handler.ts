@@ -19,7 +19,12 @@ export default class AutoSocketHandler {
       `User ${socket.data.userId} joined waiting room for tournament size ${tournamentSize}`,
     );
 
-    // TODO: 이미 대기큐에 들어가 있는 유저는 대기큐에 들어가지 않도록 처리
+    if (await this.waitingQueueCache.isUserInQueue(tournamentSize, socket.data.userId)) {
+      this.logger.info(
+        `User ${socket.data.userId} is already in the waiting queue for size ${tournamentSize}`,
+      );
+      throw new Error(`User is already in the waiting queue for size ${tournamentSize}`);
+    }
 
     await this.waitingQueueCache.addUser(tournamentSize, socket.data.userId);
     if (await this.waitingQueueCache.isQueueReady(tournamentSize)) {

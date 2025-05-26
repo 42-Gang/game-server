@@ -9,7 +9,7 @@ export default class WaitingQueueCache {
     private readonly logger: FastifyBaseLogger,
   ) {}
 
-  getQueueKey(tournamentSize: number): string {
+  private getQueueKey(tournamentSize: number): string {
     return `${this.BASE_QUEUE_KEY_PREFIX}:${tournamentSize}`;
   }
 
@@ -55,5 +55,18 @@ export default class WaitingQueueCache {
     const key = this.getQueueKey(tournamentSize);
 
     await this.redisClient.lrem(key, 0, userId);
+  }
+
+  async isUserInQueue(tournamentSize: number, userId: number): Promise<boolean> {
+    this.logger.info(`Checking if user ${userId} is in ${tournamentSize}size waiting queue`);
+    const key = this.getQueueKey(tournamentSize);
+
+    const queueLength = await this.redisClient.llen(key);
+    if (queueLength === 0) {
+      return false;
+    }
+
+    const users = await this.redisClient.lrange(key, 0, queueLength - 1);
+    return users.includes(userId.toString());
   }
 }
