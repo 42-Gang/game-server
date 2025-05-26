@@ -45,17 +45,22 @@ export default class CustomRoomCache {
       throw new Error('Room already exists');
     }
 
+    const tx = this.redisClient.multi();
+
     await Promise.all([
-      this.redisClient.hset(key, 'hostId', room.hostId, 'maxPlayers', room.maxPlayers),
-      this.redisClient.expire(key, this.ttl),
-      this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl),
-      this.redisClient.sadd(this.getUsersKey(roomId), room.hostId),
-      this.redisClient.expire(this.getUsersKey(roomId), this.ttl),
-      this.redisClient.rpush(this.getOrderedUsersKey(roomId), String(room.hostId)),
-      this.redisClient.expire(this.getOrderedUsersKey(roomId), this.ttl),
-      this.redisClient.hset(this.CUSTOM_USERS, room.hostId, roomId),
-      this.redisClient.expire(this.CUSTOM_USERS, this.ttl),
+      tx.hset(key, 'hostId', room.hostId, 'maxPlayers', room.maxPlayers),
+      tx.expire(key, this.ttl),
+      tx.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl),
+      tx.sadd(this.getUsersKey(roomId), room.hostId),
+      tx.expire(this.getUsersKey(roomId), this.ttl),
+      tx.rpush(this.getOrderedUsersKey(roomId), String(room.hostId)),
+      tx.expire(this.getOrderedUsersKey(roomId), this.ttl),
+      tx.hset(this.CUSTOM_USERS, room.hostId, roomId),
+      tx.expire(this.CUSTOM_USERS, this.ttl),
     ]);
+
+    await tx.exec();
+
     this.logger.info(`Created custom room ${roomId} with host ${room.hostId}`);
     return roomId;
   }
