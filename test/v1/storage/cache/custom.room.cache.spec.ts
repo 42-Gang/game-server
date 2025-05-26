@@ -193,14 +193,14 @@ describe('CustomRoomCache', () => {
     expect(ttlUsers).toBeGreaterThan(0);
   });
 
-  describe('isUserHost', () => {
+  describe('isRoomHost', () => {
     it('is user host', async () => {
       const roomId = await cache.createRoom({
         hostId: 1,
         maxPlayers: 4,
       });
 
-      const isHost = await cache.isUserHost(roomId, 1);
+      const isHost = await cache.isRoomHost(roomId, 1);
       await cache.deleteRoom(roomId);
 
       expect(isHost).toBe(true);
@@ -212,7 +212,7 @@ describe('CustomRoomCache', () => {
         maxPlayers: 4,
       });
 
-      const isHost = await cache.isUserHost(roomId, 2);
+      const isHost = await cache.isRoomHost(roomId, 2);
       await cache.deleteRoom(roomId);
 
       expect(isHost).toBe(false);
@@ -226,7 +226,7 @@ describe('CustomRoomCache', () => {
         maxPlayers: 4,
       });
 
-      const isHost = await cache.isUserHost(roomId, 1);
+      const isHost = await cache.isRoomHost(roomId, 1);
       await cache.deleteRoom(roomId);
 
       expect(isHost).toBe(true);
@@ -238,7 +238,7 @@ describe('CustomRoomCache', () => {
         maxPlayers: 4,
       });
 
-      const isHost = await cache.isUserHost(roomId, 2);
+      const isHost = await cache.isRoomHost(roomId, 2);
       await cache.deleteRoom(roomId);
 
       expect(isHost).toBe(false);
