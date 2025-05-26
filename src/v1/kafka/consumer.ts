@@ -7,19 +7,19 @@ export async function startConsumer(
   tournamentTopicConsumer: TournamentTopicConsumer,
   logger: FastifyBaseLogger,
 ) {
-  const consumer = kafka.consumer({ groupId: 'MAIN_GAME_SERVER', sessionTimeout: 10000 });
+  const mainConsumer = kafka.consumer({ groupId: 'MAIN_GAME_SERVER', sessionTimeout: 10000 });
   const topicConsumers: KafkaTopicConsumer[] = [tournamentTopicConsumer];
 
-  await consumer.connect();
+  await mainConsumer.connect();
 
   for (const topicConsumer of topicConsumers) {
-    await consumer.subscribe({
+    await mainConsumer.subscribe({
       topic: topicConsumer.topic,
       fromBeginning: topicConsumer.fromBeginning,
     });
   }
 
-  await consumer.run({
+  await mainConsumer.run({
     eachMessage: async ({ topic, message }) => {
       if (!message.value) {
         return console.warn(`Null message received on topic ${topic}`);
