@@ -65,11 +65,30 @@ describe('WaitingQueueCache', () => {
     );
   });
 
+  it('popForGame: 중간에 lpop에서 null 반환 시 에러 발생', async () => {
+    await redis.del('waiting-queue:4');
+    await cache.addUser(4, 1);
+    await cache.addUser(4, 2);
+    await cache.addUser(4, 3);
+    await cache.addUser(4, 4);
+
+    // Simulate a situation where lpop returns null
+    const originalLpop = redis.lpop.bind(redis);
+    redis.lpop = vi.fn().mockResolvedValueOnce(null);
+
+    await expect(cache.popUsersForMatch(4)).rejects.toThrow('No more users in the queue');
+
+    // Restore original lpop function
+    redis.lpop = originalLpop;
+  });
+
   it('popForGame: lpop에서 null 반환 시 에러 발생', async () => {
     await redis.del('waiting-queue:4');
 
     await expect(cache.popUsersForMatch(4)).rejects.toThrow(Error);
   });
+
+
 
   it('removeFromQueue: 유저를 큐에서 제거한다', async () => {
     await redis.del('waiting-queue:4');
@@ -79,5 +98,20 @@ describe('WaitingQueueCache', () => {
 
     const size = await cache.getCurrentQueueSize(4);
     expect(size).toBe(0);
+  });
+
+  it('isUserInQueue: 유저가 큐에 있으면 true 반환', async () => {
+    await redis.del('waiting-queue:4');
+
+    await cache.addUser(4, 123);
+    const isInQueue = await cache.isUserInQueue(4, 123);
+    expect(isInQueue).toBe(true);
+  });
+
+  it('isUserInQueue: 유저가 큐에 없으면 false 반환', async () => {
+    await redis.del('waiting-queue:4');
+
+    const isInQueue = await cache.isUserInQueue(4, 123);
+    expect(isInQueue).toBe(false);
   });
 });
