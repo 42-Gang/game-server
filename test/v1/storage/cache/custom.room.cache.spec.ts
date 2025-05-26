@@ -114,20 +114,32 @@ describe('CustomRoomCache', () => {
     });
   });
 
-  it('removeUser', async () => {
-    const roomId = await cache.createRoom({
-      hostId: 1,
-      maxPlayers: 4,
+  describe('removeUser', () => {
+    it('removeUser', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      await cache.addInvitedUserToRoom(roomId, 2);
+      await cache.addUserToRoom(roomId, 2);
+      await cache.removeUserFromRoom(roomId, 2);
+
+      const users = await cache.getUsersInRoom(roomId);
+      await cache.deleteRoom(roomId);
+
+      expect(users).toEqual([1]);
     });
 
-    await cache.addInvitedUserToRoom(roomId, 2);
-    await cache.addUserToRoom(roomId, 2);
-    await cache.removeUserFromRoom(roomId, 2);
+    it('removeUser (not in room)', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
 
-    const users = await cache.getUsersInRoom(roomId);
-    await cache.deleteRoom(roomId);
-
-    expect(users).toEqual([1]);
+      await cache.removeUserFromRoom(roomId, 1);
+      await expect(cache.getUsersInRoom(roomId)).resolves.toEqual([]);
+    });
   });
 
   describe('deleteRoom', () => {
