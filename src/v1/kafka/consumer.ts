@@ -22,12 +22,12 @@ export async function startConsumer(
   await mainConsumer.run({
     eachMessage: async ({ topic, message }) => {
       if (!message.value) {
-        return console.warn(`Null message received on topic ${topic}`);
+        return logger.warn(`Null message received on topic ${topic}`);
       }
 
       const handler = topicConsumers.find((h) => h.topic === topic);
       if (!handler) {
-        return console.warn(`No handler found for topic ${topic}`);
+        return logger.warn(`No handler found for topic ${topic}`);
       }
 
       try {
