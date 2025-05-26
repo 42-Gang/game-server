@@ -43,7 +43,6 @@ export default class TournamentCache {
       id: input.tournamentId,
       mode: input.mode,
       size: input.size,
-      playerIds: input.playerIds,
     });
 
     const playersKey = this.getPlayersKey(input.tournamentId);
