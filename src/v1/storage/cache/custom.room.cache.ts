@@ -103,7 +103,7 @@ export default class CustomRoomCache {
     );
 
     if (result === 'ROOM_FULL') {
-      this.logger.error(`Room \${roomId} is full`);
+      this.logger.error(`Room ${roomId} is full`);
       throw new Error('Room is full');
     }
   }
