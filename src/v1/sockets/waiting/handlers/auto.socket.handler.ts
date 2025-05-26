@@ -23,14 +23,18 @@ export default class AutoSocketHandler {
 
     await this.waitingQueueCache.addUser(tournamentSize, socket.data.userId);
     if (await this.waitingQueueCache.isQueueReady(tournamentSize)) {
-      const userIds = await this.waitingQueueCache.popUsersForMatch(tournamentSize);
-      await tournamentRequestProducer({
-        size: tournamentSize,
-        mode: 'AUTO',
-        players: userIds,
-        timestamp: new Date().toISOString(),
-      });
-      this.logger.info(`Tournament request sent for size ${tournamentSize} with users: ${userIds}`);
+      await this.startTournament(tournamentSize);
     }
+  }
+
+  private async startTournament(tournamentSize: 2 | 4 | 8 | 16) {
+    const userIds = await this.waitingQueueCache.popUsersForMatch(tournamentSize);
+    await tournamentRequestProducer({
+      size: tournamentSize,
+      mode: 'AUTO',
+      players: userIds,
+      timestamp: new Date().toISOString(),
+    });
+    this.logger.info(`Tournament request sent for size ${tournamentSize} with users: ${userIds}`);
   }
 }
