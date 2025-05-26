@@ -102,9 +102,9 @@ export default class CustomRoomCache {
       String(userId),
     );
 
-    if (result && result.err) {
-      this.logger.error(`Failed to add user ${userId} to room ${roomId}: ${result.err}`);
-      throw new Error(result.err);
+    if (result === 'ROOM_FULL') {
+      this.logger.error(`Room \${roomId} is full`);
+      throw new Error('Room is full');
     }
   }
 
@@ -114,11 +114,6 @@ export default class CustomRoomCache {
     await this.redisClient.expire(usersKey, this.ttl);
 
     this.logger.info(`User ${userId} invited room ${roomId}`);
-  }
-
-  private async _isRoomFull(roomId: string) {
-    const room = await this.getRoomInfo(roomId);
-    return room.maxPlayers === (await this.getNumberOfUsersInRoom(roomId));
   }
 
   async getRoomInfo(roomId: string): Promise<RoomInfo> {
