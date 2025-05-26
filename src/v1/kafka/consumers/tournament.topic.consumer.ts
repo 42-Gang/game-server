@@ -69,6 +69,9 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
       if (players.length === 0) {
         throw new Error('플레이어 정보를 가져오는 데 실패했습니다.');
       }
+      if (players.length !== message.players.length) {
+        throw new Error(`플레이어 수 불일치: ${players.length} vs ${message.players.length}`);
+      }
       const playerIds = players.map((player) => player.userId);
       this.logger.info(playerIds, '플레이어 ID:');
 
