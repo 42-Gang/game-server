@@ -75,22 +75,31 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
       const playerIds = players.map((player) => player.userId);
       this.logger.info(playerIds, '플레이어 ID:');
 
-      const users = await Promise.all(
-        playerIds.map(async (userid) => this.userServiceClient.getUserInfo(userid)),
+      const users = await Promise.allSettled(
+        playerIds.map(async (userId) => this.userServiceClient.getUserInfo(userId)),
       );
       this.logger.info(users, '유저 정보:');
 
+      users.forEach(
+        (result) =>
+          result.status === 'rejected' &&
+          this.logger.error(result.reason, '유저 정보 가져오기 실패:'),
+      );
+
       for (const socketId of socketIds) {
-        if (socketId) {
-          this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.TOURNAMENT.CREATED, {
-            tournamentId: message.tournamentId,
-            size: message.size,
-            mode: message.mode,
-          });
-          this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
-            users,
-          });
+        if (!socketId) {
+          continue;
         }
+        this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+          users: users
+            .filter((result) => result.status === 'fulfilled')
+            .map((result) => result.value),
+        });
+        this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.TOURNAMENT.CREATED, {
+          tournamentId: message.tournamentId,
+          size: message.size,
+          mode: message.mode,
+        });
       }
       return;
     }
