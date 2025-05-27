@@ -70,8 +70,6 @@ export function startWaitingNamespace(namespace: Namespace) {
     registerAutoEvents(socket, autoSocketHandler, logger);
     registerCustomEvents(socket, customSocketHandler, logger);
 
-    // TODO: 나가기 기능 추가
-
     socket.on('disconnect', () => {
       logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
       waitingSocketHandler.leaveRoom(socket);
