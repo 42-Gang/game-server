@@ -329,5 +329,9 @@ describe('CustomRoomCache', () => {
       await cache.disconnectedUser(1);
       await expect(cache.getRoomInfo(roomId)).rejects.toThrow(Error);
     });
+
+    it('연결을 종료하는 사용자가 아무 대기방에도 존재하지 않을 경우', async () => {
+      await expect(cache.disconnectedUser(111)).resolves.toBeUndefined();
+    });
   });
 });
