@@ -305,4 +305,29 @@ describe('CustomRoomCache', () => {
       expect(foundRoomId).toBeNull();
     });
   });
+
+  describe('disconnectedUser', () => {
+    it('should handle user disconnection', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      await cache.addInvitedUserToRoom(roomId, 2);
+      await cache.addUserToRoom(roomId, 2);
+      await cache.disconnectedUser(2);
+
+      console.log(await cache.getUsersInRoom(roomId)); // Should log [1, 2]
+    });
+
+    it('should delete room if host disconnects and no users left', async () => {
+      const roomId = await cache.createRoom({
+        hostId: 1,
+        maxPlayers: 4,
+      });
+
+      await cache.disconnectedUser(1);
+      await expect(cache.getRoomInfo(roomId)).rejects.toThrow(Error);
+    });
+  });
 });
