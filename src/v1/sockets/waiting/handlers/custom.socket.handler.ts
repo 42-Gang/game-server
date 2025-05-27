@@ -57,7 +57,7 @@ export default class CustomSocketHandler {
     });
     if (!socketId) {
       this.logger.error(`User ${message.userId} is not connected`);
-      return;
+      throw new Error('User is not connected');
     }
     socket.to(socketId).emit(SOCKET_EVENTS.CUSTOM.INVITE, {
       roomId: message.roomId,
