@@ -206,6 +206,10 @@ export default class CustomRoomCache {
     await this.removeUserFromRoom(roomId, userId);
     if ((await this.isRoomExists(roomId)) && 1 <= (await this.getNumberOfUsersInRoom(roomId))) {
       const nextHostId = await this.getNextHostIdFromOrderedUsers(roomId);
+      if (!nextHostId) {
+        this.logger.error(`No next host found for room ${roomId}`);
+        throw new Error('No next host found');
+      }
       await this.changeRoomHost(roomId, Number(nextHostId));
     }
   }
