@@ -75,12 +75,28 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
       const playerIds = players.map((player) => player.userId);
       this.logger.info(playerIds, '플레이어 ID:');
 
-      const users = await Promise.allSettled(
+      const userResults = await Promise.allSettled(
         playerIds.map(async (userId) => this.userServiceClient.getUserInfo(userId)),
       );
+
+      const users = userResults.map((result, idx) => {
+        const userId = playerIds[idx];
+
+        if (result.status === 'fulfilled') {
+          return result.value;
+        }
+
+        this.logger.error(result.reason, `유저 ${userId} 정보 가져오기 실패`);
+        return {
+          userId,
+          nickname: '',
+          profileImage: null,
+          status: 'unknown',
+        };
+      });
       this.logger.info(users, '유저 정보:');
 
-      users.forEach(
+      userResults.forEach(
         (result) =>
           result.status === 'rejected' &&
           this.logger.error(result.reason, '유저 정보 가져오기 실패:'),
@@ -91,9 +107,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
           continue;
         }
         this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
-          users: users
-            .filter((result) => result.status === 'fulfilled')
-            .map((result) => result.value),
+          users,
         });
         this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.TOURNAMENT.CREATED, {
           tournamentId: message.tournamentId,
