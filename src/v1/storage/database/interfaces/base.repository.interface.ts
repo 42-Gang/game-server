@@ -1,11 +1,13 @@
+import { Prisma } from '@prisma/client';
+
 export interface BaseRepositoryInterface<T, CreateInput, UpdateInput> {
   findById(id: number): Promise<T | null>;
 
-  create(data: CreateInput): Promise<T>;
+  create(data: CreateInput, tx?: Prisma.TransactionClient): Promise<T>;
 
-  update(id: number, data: UpdateInput): Promise<T>;
+  update(id: number, data: UpdateInput, tx?: Prisma.TransactionClient): Promise<T>;
 
-  delete(id: number): Promise<T>;
+  delete(id: number): Promise<void>;
 
   findAll(): Promise<T[]>;
 }

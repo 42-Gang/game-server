@@ -30,7 +30,7 @@ export function getLoggerOptions() {
 
 export async function startServer(server: FastifyInstance) {
   try {
-    await server.listen({ port: Number(process.env.FASTIFY_PORT) || 3000 });
+    await server.listen({ port: Number(process.env.FASTIFY_PORT) || 3000, host: '0.0.0.0' });
   } catch (err) {
     server.log.error(err);
     process.exit(1);

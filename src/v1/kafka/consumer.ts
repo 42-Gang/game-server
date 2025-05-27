@@ -1,40 +1,40 @@
 import { kafka } from '../../plugins/kafka.js';
-import { KafkaTopicHandler } from './consumers/kafka.topic.handler.js';
-// import MatchTopicHandler from './consumers/match.topic.handler.js';
+import { KafkaTopicConsumer } from './consumers/kafka.topic.consumer.js';
+import TournamentTopicConsumer from './consumers/tournament.topic.consumer.js';
+import { FastifyBaseLogger } from 'fastify';
 
-export async function startConsumer() {
-  //   matchTopicHandler: MatchTopicHandler,
-  const consumer = kafka.consumer({ groupId: 'STATUS', sessionTimeout: 10000 });
-  const handlers: KafkaTopicHandler[] = [
-    // matchTopicHandler,
-  ];
+export async function startConsumer(
+  tournamentTopicConsumer: TournamentTopicConsumer,
+  logger: FastifyBaseLogger,
+) {
+  const mainConsumer = kafka.consumer({ groupId: 'MAIN_GAME_SERVER', sessionTimeout: 10000 });
+  const topicConsumers: KafkaTopicConsumer[] = [tournamentTopicConsumer];
 
-  await consumer.connect();
+  await mainConsumer.connect();
 
-  for (const handler of handlers) {
-    await consumer.subscribe({ topic: handler.topic, fromBeginning: handler.fromBeginning });
+  for (const topicConsumer of topicConsumers) {
+    await mainConsumer.subscribe({
+      topic: topicConsumer.topic,
+      fromBeginning: topicConsumer.fromBeginning,
+    });
   }
 
-  await consumer.run({
+  await mainConsumer.run({
     eachMessage: async ({ topic, message }) => {
       if (!message.value) {
-        return console.warn(`Null message received on topic ${topic}`);
+        return logger.warn(`Null message received on topic ${topic}`);
       }
 
-      const handler = handlers.find((h) => h.topic === topic);
+      const handler = topicConsumers.find((h) => h.topic === topic);
       if (!handler) {
-        return console.warn(`No handler found for topic ${topic}`);
+        return logger.warn(`No handler found for topic ${topic}`);
       }
 
       try {
         await handler.handle(message.value.toString());
       } catch (error) {
-        console.error(
-          `❌ Error handling message from topic ${topic}:`,
-          error,
-          'Raw message:',
-          message.value.toString(),
-        );
+        logger.error(error, `❌ Error handling message from topic ${topic}:`);
+        logger.error(message.value.toString(), 'Raw message:');
       }
     },
   });

@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/api/v1/auth/validate-token",
+    "headers": {
+      "authorization": {
+        "equalTo": "Bearer userB-token"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Authenticated": "true",
+      "X-User-Id": "222"
+    }
+  }
+}
