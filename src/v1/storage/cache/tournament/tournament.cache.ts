@@ -1,32 +1,29 @@
 import { Redis } from 'ioredis';
 import { FastifyBaseLogger } from 'fastify';
-import { tournamentSizeType } from '../../sockets/waiting/schemas/tournament.schema.js';
+import { tournamentSizeType } from '../../../sockets/waiting/schemas/tournament.schema.js';
 
 export default class TournamentCache {
   private readonly BASE_TOURNAMENT_KEY_PREFIX = 'tournament';
+  private readonly ttl = 60 * 30;
 
   constructor(
     private readonly redisClient: Redis,
     private readonly logger: FastifyBaseLogger,
   ) {}
 
-  getMetaKey(tournamentId: number): string {
+  private getTournamentKey(tournamentId: number): string {
     return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:meta`;
   }
 
-  getPlayersKey(tournamentId: number): string {
+  private getPlayersKey(tournamentId: number): string {
     return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:players`;
   }
 
-  getMatchKey(tournamentId: number, matchId: number): string {
-    return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:match:${matchId}`;
-  }
-
-  getRoundStatusKey(tournamentId: number): string {
+  private getRoundStatusKey(tournamentId: number): string {
     return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:round:status`;
   }
 
-  getPlayerStatusKey(tournamentId: number, userId: number): string {
+  private getPlayerStatusKey(tournamentId: number, userId: number): string {
     return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:players:${userId}:status`;
   }
 
@@ -38,21 +35,17 @@ export default class TournamentCache {
   }): Promise<void> {
     this.logger.info(`Creating tournament ${input.tournamentId}`);
 
-    const metaKey = this.getMetaKey(input.tournamentId);
-    await this.redisClient.hset(metaKey, {
-      id: input.tournamentId,
+    await this.redisClient.hset(this.getTournamentKey(input.tournamentId), {
       mode: input.mode,
       size: input.size,
     });
-
-    const playersKey = this.getPlayersKey(input.tournamentId);
-    await this.redisClient.sadd(playersKey, input.playerIds);
-
-    const roundStatusKey = this.getRoundStatusKey(input.tournamentId);
-    await this.redisClient.hset(roundStatusKey, {
+    await this.redisClient.sadd(this.getPlayersKey(input.tournamentId), input.playerIds);
+    await this.redisClient.hset(this.getRoundStatusKey(input.tournamentId), {
       ROUND_4: 'WAITING',
       ROUND_2: 'WAITING',
     });
+
+    await this.redisClient.expire(`${this.getTournamentKey(input.tournamentId)}:*`, this.ttl);
 
     for (const playerId of input.playerIds) {
       const playerStatusKey = this.getPlayerStatusKey(input.tournamentId, playerId);

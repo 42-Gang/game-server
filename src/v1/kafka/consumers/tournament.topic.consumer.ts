@@ -15,7 +15,7 @@ import SocketCache from '../../storage/cache/socket.cache.js';
 import { SOCKET_EVENTS } from '../../sockets/waiting/waiting.event.js';
 import { tournamentCreatedProducer } from '../producers/tournament.producer.js';
 import UserServiceClient from '../../client/user.service.client.js';
-import TournamentCache from '../../storage/cache/tournament.cache.js';
+import TournamentCache from '../../storage/cache/tournament/tournament.cache.js';
 import { tournamentSizeSchema } from '../../sockets/waiting/schemas/tournament.schema.js';
 
 interface tournamentCreateParams {
