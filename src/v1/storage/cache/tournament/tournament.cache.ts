@@ -2,29 +2,29 @@ import { Redis } from 'ioredis';
 import { FastifyBaseLogger } from 'fastify';
 import { tournamentSizeType } from '../../../sockets/waiting/schemas/tournament.schema.js';
 
-export default class TournamentCache {
-  private readonly BASE_TOURNAMENT_KEY_PREFIX = 'tournament';
-  private readonly ttl = 60 * 30;
+export const BASE_TOURNAMENT_KEY_PREFIX = 'tournament';
+export const TOURNAMENT_TTL = 60 * 30;
 
+export default class TournamentCache {
   constructor(
     private readonly redisClient: Redis,
     private readonly logger: FastifyBaseLogger,
   ) {}
 
   private getTournamentKey(tournamentId: number): string {
-    return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:meta`;
+    return `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:meta`;
   }
 
   private getPlayersKey(tournamentId: number): string {
-    return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:players`;
+    return `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:players`;
   }
 
   private getRoundStatusKey(tournamentId: number): string {
-    return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:round:status`;
+    return `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:round:status`;
   }
 
   private getPlayerStatusKey(tournamentId: number, userId: number): string {
-    return `${this.BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:players:${userId}:status`;
+    return `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:players:${userId}:status`;
   }
 
   async createTournament(input: {
@@ -45,7 +45,7 @@ export default class TournamentCache {
       ROUND_2: 'WAITING',
     });
 
-    await this.redisClient.expire(`${this.getTournamentKey(input.tournamentId)}:*`, this.ttl);
+    await this.redisClient.expire(`${this.getTournamentKey(input.tournamentId)}:*`, TOURNAMENT_TTL);
 
     for (const playerId of input.playerIds) {
       const playerStatusKey = this.getPlayerStatusKey(input.tournamentId, playerId);
