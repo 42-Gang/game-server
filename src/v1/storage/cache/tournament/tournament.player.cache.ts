@@ -24,7 +24,7 @@ export default class TournamentPlayerCache {
     return `${this.getPlayersKey(tournamentId)}:ready`;
   }
 
-  private async initiatePlayersState(playerIds: number[], tournamentId: number) {
+  private async initializePlayersState(playerIds: number[], tournamentId: number) {
     await Promise.all(
       playerIds.map((playerId) =>
         this.redisClient.set(this.getPlayerStateKey(tournamentId, playerId), 'NOT_READY'),
@@ -44,7 +44,7 @@ export default class TournamentPlayerCache {
   async registerPlayers(tournamentId: number, playerIds: number[]): Promise<void> {
     await this.addPlayers(tournamentId, playerIds);
     await this.addActivePlayers(tournamentId, playerIds);
-    await this.initiatePlayersState(playerIds, tournamentId);
+    await this.initializePlayersState(playerIds, tournamentId);
 
     await this.redisClient.expire(`${this.getPlayersKey(tournamentId)}:*`, TOURNAMENT_TTL);
   }
