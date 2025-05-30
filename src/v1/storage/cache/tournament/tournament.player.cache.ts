@@ -1,4 +1,4 @@
-import { BASE_TOURNAMENT_KEY_PREFIX } from './tournament.cache.js';
+import { BASE_TOURNAMENT_KEY_PREFIX, TOURNAMENT_TTL } from './tournament.cache.js';
 import { Redis } from 'ioredis';
 
 export default class TournamentPlayerCache {
@@ -45,5 +45,7 @@ export default class TournamentPlayerCache {
     await this.addPlayers(tournamentId, playerIds);
     await this.addActivePlayers(tournamentId, playerIds);
     await this.initiatePlayersState(playerIds, tournamentId);
+
+    await this.redisClient.expire(`${this.getPlayersKey(tournamentId)}:*`, TOURNAMENT_TTL);
   }
 }
