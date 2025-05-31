@@ -1,5 +1,8 @@
 import { BASE_TOURNAMENT_KEY_PREFIX, TOURNAMENT_TTL } from './tournament.cache.js';
 import { Redis } from 'ioredis';
+import { z } from 'zod';
+
+const playerStateSchema = z.enum(['NOT_READY', 'READY', 'IN_GAME']);
 
 export default class TournamentPlayerCache {
   constructor(private readonly redisClient: Redis) {}
@@ -27,7 +30,10 @@ export default class TournamentPlayerCache {
   private async initializePlayersState(playerIds: number[], tournamentId: number) {
     await Promise.all(
       playerIds.map((playerId) =>
-        this.redisClient.set(this.getPlayerStateKey(tournamentId, playerId), 'NOT_READY'),
+        this.redisClient.set(
+          this.getPlayerStateKey(tournamentId, playerId),
+          playerStateSchema.enum.NOT_READY,
+        ),
       ),
     );
   }
