@@ -25,10 +25,6 @@ export default class TournamentPlayerCache {
     await this.redisClient.sadd(playersKey, playerIds);
   }
 
-  private async setExpire(tournamentId: number) {
-    await this.redisClient.expire(`${this.getPlayersKey(tournamentId)}:*`, TOURNAMENT_TTL);
-  }
-
   private async addPlayerInReady(tournamentId: number, userId: number) {
     const readyPlayersKey = this.getReadyPlayersKey(tournamentId);
     await this.redisClient.sadd(readyPlayersKey, userId);
@@ -44,7 +40,7 @@ export default class TournamentPlayerCache {
   async registerPlayers(tournamentId: number, playerIds: number[]): Promise<void> {
     await this.addPlayers(tournamentId, playerIds);
 
-    await this.setExpire(tournamentId);
+    await this.refreshTTL(tournamentId);
   }
 
   async setPlayerReady(tournamentId: number, userId: number): Promise<void> {
@@ -53,7 +49,7 @@ export default class TournamentPlayerCache {
     }
 
     await this.addPlayerInReady(tournamentId, userId);
-    await this.setExpire(tournamentId);
+    await this.refreshTTL(tournamentId);
   }
 
   private async getReadyPlayers(tournamentId: number): Promise<number[]> {
@@ -110,6 +106,7 @@ export default class TournamentPlayerCache {
   }
 
   private async refreshTTL(tournamentId: number) {
+    await this.redisClient.expire(this.getPlayersKey(tournamentId), TOURNAMENT_TTL);
     await this.redisClient.expire(`${this.getPlayersKey(tournamentId)}:*`, TOURNAMENT_TTL);
   }
 }
