@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { Redis } from 'ioredis';
 import TournamentPlayerCache from '../../../../../src/v1/storage/cache/tournament/tournament.player.cache.js';
 
