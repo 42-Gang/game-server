@@ -17,7 +17,7 @@ export default class TournamentMatchCache {
     const matchesByRoundKey = this.getMatchesByRoundKey(tournamentId, matchData.round);
     await this.redisClient.sadd(matchesByRoundKey, matchId);
 
-    await this.redisClient.expire(`${this.getMatchesKey(tournamentId)}:*`, TOURNAMENT_TTL);
+    await this.refreshTTL(tournamentId);
   }
 
   async getMatchesInRound(tournamentId: number, round: number): Promise<number[]> {
@@ -25,5 +25,21 @@ export default class TournamentMatchCache {
     const members = await this.redisClient.smembers(matchesByRoundKey);
 
     return members.map(Number);
+  }
+
+  private async refreshTTL(tournamentId: number) {
+    const baseKey = this.getMatchesKey(tournamentId);
+    const pattern = `${baseKey}:*`;
+
+    // 부모 키에 먼저 TTL 설정
+    const pipeline = this.redisClient.multi().expire(baseKey, TOURNAMENT_TTL);
+
+    // 패턴에 맞는 하위 키 조회
+    const childKeys = await this.redisClient.keys(pattern);
+    childKeys.forEach((key) => {
+      pipeline.expire(key, TOURNAMENT_TTL);
+    });
+
+    await pipeline.exec();
   }
 }
