@@ -13,6 +13,7 @@ export default defineConfig({
     sequence: {
       concurrent: false,
     },
+    fileParallelism: false,
     setupFiles: ['./test/vitest.setup.ts'],
   },
 });
