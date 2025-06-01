@@ -50,9 +50,22 @@ export default class TournamentMetaCache {
     await this.setTournamentState(tournamentStateKey);
     await this.setTournamentCurrentRound(tournamentCurrentRoundKey, metaData.size);
 
-    await this.redisClient.expire(
-      `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:*`,
-      TOURNAMENT_TTL,
-    );
+    await this.refreshTTL(tournamentId);
+  }
+
+  private async refreshTTL(tournamentId: number) {
+    const baseKey = this.getTournamentKey(tournamentId);
+    const pattern = `${baseKey}:*`;
+
+    // 부모 키에 먼저 TTL 설정
+    const pipeline = this.redisClient.multi().expire(baseKey, TOURNAMENT_TTL);
+
+    // 패턴에 맞는 하위 키 조회
+    const childKeys = await this.redisClient.keys(pattern);
+    childKeys.forEach((key) => {
+      pipeline.expire(key, TOURNAMENT_TTL);
+    });
+
+    await pipeline.exec();
   }
 }
