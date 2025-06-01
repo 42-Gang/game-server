@@ -82,6 +82,10 @@ export default class TournamentPlayerCache {
     const readyPlayersKey = this.getReadyPlayersKey(tournamentId);
     const playingPlayersKey = this.getPlayingPlayersKey(tournamentId);
 
+    if (!(await this.areAllPlayersReady(tournamentId))) {
+      throw new Error(`Not all players are ready for tournament ${tournamentId}`);
+    }
+
     const readyPlayers = await this.getReadyPlayers(tournamentId);
     await this.redisClient
       .multi()
@@ -93,12 +97,10 @@ export default class TournamentPlayerCache {
   }
 
   async eliminatePlayer(tournamentId: number, userId: number): Promise<void> {
-    const playersKey = this.getPlayersKey(tournamentId);
     const eliminatedPlayersKey = this.getEliminatedPlayersKey(tournamentId);
 
     await this.redisClient
       .multi()
-      .srem(playersKey, userId)
       .sadd(eliminatedPlayersKey, userId)
       .exec();
 
