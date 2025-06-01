@@ -133,6 +133,12 @@ describe('movePlayersToPlaying', () => {
     expect(isExistsReadyKey).toBe(0);
     expect(ttlPlaying).toBeGreaterThan(0);
   });
+
+  it('should not move players if no ready players', async () => {
+    await cache.registerPlayers(tournamentId, [16, 17]);
+    // ready 상태로 설정하지 않음
+    await expect(cache.movePlayersToPlaying(tournamentId)).rejects.toThrow(Error);
+  });
 });
 
 describe('eliminatePlayer', () => {

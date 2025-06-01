@@ -99,10 +99,7 @@ export default class TournamentPlayerCache {
   async eliminatePlayer(tournamentId: number, userId: number): Promise<void> {
     const eliminatedPlayersKey = this.getEliminatedPlayersKey(tournamentId);
 
-    await this.redisClient
-      .multi()
-      .sadd(eliminatedPlayersKey, userId)
-      .exec();
+    await this.redisClient.multi().sadd(eliminatedPlayersKey, userId).exec();
 
     await this.refreshTTL(tournamentId);
   }
