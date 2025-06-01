@@ -35,12 +35,16 @@ export default class TournamentMatchCache {
     matchId: number,
     matchData: matchDataType,
   ): Promise<void> {
-    const matchKey = this.getMatchKey(tournamentId, matchId);
     const matchesByRoundKey = this.getMatchesByRoundKey(tournamentId, matchData.round);
-
-    await this.redisClient.hset(matchKey, matchData);
     await this.redisClient.sadd(matchesByRoundKey, matchId);
 
     await this.redisClient.expire(`${this.getMatchesKey(tournamentId)}:*`, TOURNAMENT_TTL);
+  }
+
+  async getMatchesInRound(tournamentId: number, round: number): Promise<number[]> {
+    const matchesByRoundKey = this.getMatchesByRoundKey(tournamentId, round);
+    const members = await this.redisClient.smembers(matchesByRoundKey);
+
+    return members.map(Number);
   }
 }
