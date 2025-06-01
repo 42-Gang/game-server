@@ -106,7 +106,18 @@ export default class TournamentPlayerCache {
   }
 
   private async refreshTTL(tournamentId: number) {
-    await this.redisClient.expire(this.getPlayersKey(tournamentId), TOURNAMENT_TTL);
-    await this.redisClient.expire(`${this.getPlayersKey(tournamentId)}:*`, TOURNAMENT_TTL);
+    const baseKey = this.getPlayersKey(tournamentId);
+    const pattern = `${baseKey}:*`;
+
+    // 부모 키에 먼저 TTL 설정
+    const pipeline = this.redisClient.multi().expire(baseKey, TOURNAMENT_TTL);
+
+    // 패턴에 맞는 하위 키 조회
+    const childKeys = await this.redisClient.keys(pattern);
+    childKeys.forEach((key) => {
+      pipeline.expire(key, TOURNAMENT_TTL);
+    });
+
+    await pipeline.exec();
   }
 }
