@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { redis } from '../../../../../src/plugins/redis.js';
 import TournamentCache, {
   BASE_TOURNAMENT_KEY_PREFIX,
-  TOURNAMENT_TTL,
 } from '../../../../../src/v1/storage/cache/tournament/tournament.cache.js';
 import TournamentMetaCache from '../../../../../src/v1/storage/cache/tournament/tournament.meta.cache.js';
 import TournamentMatchCache from '../../../../../src/v1/storage/cache/tournament/tournament.match.cache.js';
@@ -19,6 +18,7 @@ type MatchLike = {
   player2Score?: number;
   status?: string;
   winnerId?: number;
+  tournamentId: number;
 };
 
 describe('TournamentCache', () => {
