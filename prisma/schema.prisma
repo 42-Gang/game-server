@@ -47,8 +47,8 @@ model Player {
 
 model Match {
   id           Int    @id @default(autoincrement())
-  player1      Int?
-  player2      Int?
+  player1Id    Int?
+  player2Id    Int?
   player1Score Int?   @default(0) @map("player_1_score")
   player2Score Int?   @default(0) @map("player_2_score")
   winner       Int?

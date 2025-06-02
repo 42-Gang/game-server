@@ -1,27 +1,12 @@
 import { FastifyBaseLogger } from 'fastify';
-import {
-  tournamentSizeSchema,
-  tournamentSizeType,
-} from '../../../sockets/waiting/schemas/tournament.schema.js';
-import TournamentMatchCache from './tournament.match.cache.js';
+import { tournamentSizeSchema } from '../../../sockets/waiting/schemas/tournament.schema.js';
+import TournamentMatchCache, { matchSchema } from './tournament.match.cache.js';
 import TournamentMetaCache from './tournament.meta.cache.js';
 import TournamentPlayerCache from './tournament.player.cache.js';
-import { Match } from '@prisma/client';
 import { TypeOf, z } from 'zod';
 
 export const BASE_TOURNAMENT_KEY_PREFIX = 'tournament';
 export const TOURNAMENT_TTL = 60 * 30;
-
-const matchSchema = z.object({
-  id: z.number(),
-  round: z.number(),
-  player1Id: z.number().nullable(),
-  player2Id: z.number().nullable(),
-  player1Score: z.number().nullable(),
-  player2Score: z.number().nullable(),
-  status: z.string().nullable(),
-  winnerId: z.number().nullable(),
-});
 
 export type createTournamentType = TypeOf<typeof createTournamentSchema>;
 

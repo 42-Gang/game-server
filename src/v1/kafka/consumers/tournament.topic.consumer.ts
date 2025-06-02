@@ -132,8 +132,9 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     await this.tournamentCache.createTournament({
       tournamentId: tournament.id,
       mode: tournament.mode,
-      size: parsedSize.data,
       playerIds: players.map((player) => player.userId),
+      size: parsedSize.data,
+      matches: await this.matchRepository.findManyByTournamentId(tournament.id),
     });
     tournamentCreatedProducer({
       mode: message.mode,
@@ -183,8 +184,8 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
       await this.matchRepository.update(
         leafNodes[i / 2].id,
         {
-          player1: players[i].userId,
-          player2: players[i + 1].userId,
+          player1Id: players[i].userId,
+          player2Id: players[i + 1].userId,
         },
         tx,
       );
