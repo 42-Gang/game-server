@@ -9,11 +9,8 @@ declare module 'socket.io' {
     diContainer: AwilixContainer;
     data: {
       userId: number;
+      tournamentId: number;
     };
-    redis: RedisClient;
-  }
-
-  interface Server {
     redis: RedisClient;
   }
 }

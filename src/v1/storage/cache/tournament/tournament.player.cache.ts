@@ -37,21 +37,6 @@ export default class TournamentPlayerCache {
     return true;
   }
 
-  async registerPlayers(tournamentId: number, playerIds: number[]): Promise<void> {
-    await this.addPlayers(tournamentId, playerIds);
-
-    await this.refreshTTL(tournamentId);
-  }
-
-  async setPlayerReady(tournamentId: number, userId: number): Promise<void> {
-    if (!(await this.isActivePlayer(tournamentId, userId))) {
-      throw new Error(`Player ${userId} is not an active player in tournament ${tournamentId}`);
-    }
-
-    await this.addPlayerInReady(tournamentId, userId);
-    await this.refreshTTL(tournamentId);
-  }
-
   private async getReadyPlayers(tournamentId: number): Promise<number[]> {
     const players = await this.redisClient.smembers(this.getReadyPlayersKey(tournamentId));
     return players.map(Number);
@@ -65,6 +50,37 @@ export default class TournamentPlayerCache {
   private async getPlayers(tournamentId: number): Promise<number[]> {
     const players = await this.redisClient.smembers(this.getPlayersKey(tournamentId));
     return players.map(Number);
+  }
+
+  private async refreshTTL(tournamentId: number) {
+    const baseKey = this.getPlayersKey(tournamentId);
+    const pattern = `${baseKey}:*`;
+
+    // 부모 키에 먼저 TTL 설정
+    const pipeline = this.redisClient.multi().expire(baseKey, TOURNAMENT_TTL);
+
+    // 패턴에 맞는 하위 키 조회
+    const childKeys = await this.redisClient.keys(pattern);
+    childKeys.forEach((key) => {
+      pipeline.expire(key, TOURNAMENT_TTL);
+    });
+
+    await pipeline.exec();
+  }
+
+  async registerPlayers(tournamentId: number, playerIds: number[]): Promise<void> {
+    await this.addPlayers(tournamentId, playerIds);
+
+    await this.refreshTTL(tournamentId);
+  }
+
+  async setPlayerReady(tournamentId: number, userId: number): Promise<void> {
+    if (!(await this.isActivePlayer(tournamentId, userId))) {
+      throw new Error(`Player ${userId} is not an active player in tournament ${tournamentId}`);
+    }
+
+    await this.addPlayerInReady(tournamentId, userId);
+    await this.refreshTTL(tournamentId);
   }
 
   async areAllPlayersReady(tournamentId: number): Promise<boolean> {
@@ -96,27 +112,16 @@ export default class TournamentPlayerCache {
     await this.refreshTTL(tournamentId);
   }
 
+  async isUserParticipant(tournamentId: number, userId: number): Promise<boolean> {
+    const playersId = await this.getPlayers(tournamentId);
+    return playersId.includes(userId);
+  }
+
   async eliminatePlayer(tournamentId: number, userId: number): Promise<void> {
     const eliminatedPlayersKey = this.getEliminatedPlayersKey(tournamentId);
 
     await this.redisClient.multi().sadd(eliminatedPlayersKey, userId).exec();
 
     await this.refreshTTL(tournamentId);
-  }
-
-  private async refreshTTL(tournamentId: number) {
-    const baseKey = this.getPlayersKey(tournamentId);
-    const pattern = `${baseKey}:*`;
-
-    // 부모 키에 먼저 TTL 설정
-    const pipeline = this.redisClient.multi().expire(baseKey, TOURNAMENT_TTL);
-
-    // 패턴에 맞는 하위 키 조회
-    const childKeys = await this.redisClient.keys(pattern);
-    childKeys.forEach((key) => {
-      pipeline.expire(key, TOURNAMENT_TTL);
-    });
-
-    await pipeline.exec();
   }
 }

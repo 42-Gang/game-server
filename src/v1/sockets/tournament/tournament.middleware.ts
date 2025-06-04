@@ -1,20 +1,25 @@
 import { Socket } from 'socket.io';
+import TournamentService from './tournament.service.js';
 
 type NextFunction = (err?: Error) => void;
 
 export async function tournamentMiddleware(socket: Socket, next: NextFunction) {
   try {
     const tournamentId = socket.handshake.query.tournamentId;
-    const userId = socket.data.userId;
-    if (!tournamentId) {
-      return next(new Error('Tournament ID is required'));
+    if (!tournamentId || Array.isArray(tournamentId)) {
+      return next(new Error('Invalid tournament ID format'));
     }
+
+    const userId = socket.data.userId;
     if (!userId) {
       return next(new Error('User ID is required'));
     }
 
-    console.log(`Socket middleware: tournamentId=${tournamentId}`);
-    console.log(`Socket middleware: userId=${userId}`);
+    const { diContainer } = socket.nsp.server;
+    const tournamentService = diContainer.resolve<TournamentService>('tournamentService');
+    if (!(await tournamentService.isUserParticipant(parseInt(tournamentId), userId))) {
+      return next(new Error('User is not a participant in this tournament'));
+    }
 
     next();
   } catch (e) {
