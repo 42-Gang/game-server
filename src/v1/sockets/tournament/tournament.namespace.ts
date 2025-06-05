@@ -2,6 +2,7 @@ import { Namespace, Socket } from 'socket.io';
 import { socketMiddleware } from '../utils/middleware.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { tournamentMiddleware } from './tournament.middleware.js';
+import { TOURNAMENT_SOCKET_EVENTS } from './tournament.event.js';
 
 export function startTournamentNamespace(namespace: Namespace) {
   namespace.use(socketMiddleware);
@@ -17,7 +18,18 @@ export function startTournamentNamespace(namespace: Namespace) {
       socketId: socket.id,
       userId: userId,
     });
-
     logger.info(`🟢 [/tournament] Connected: ${socket.id} ${userId}`);
+
+    socket.on(TOURNAMENT_SOCKET_EVENTS.READY, async () => {
+      logger.info(`🟢 [/tournament] User ${userId} is ready`);
+    });
+
+    socket.on('disconnect', () => {
+      logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
+      socketCache.deleteSocketId({
+        namespace: 'waiting',
+        userId: userId,
+      });
+    });
   });
 }
