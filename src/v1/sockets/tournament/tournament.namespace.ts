@@ -15,12 +15,15 @@ export function startTournamentNamespace(namespace: Namespace) {
       namespace.server.diContainer.resolve('tournamentSocketHandler');
     const logger = namespace.server.logger;
     const userId = socket.data.userId;
+    const tournamentId = socket.data.tournamentId;
 
     await socketCache.setSocketId({
       namespace: 'tournament',
       socketId: socket.id,
       userId: userId,
     });
+    socket.join(`tournament:${tournamentId}`);
+
     logger.info(`🟢 [/tournament] Connected: ${socket.id} ${userId}`);
     await tournamentSocketHandler.sendTournamentInfo(socket);
 
