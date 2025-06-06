@@ -38,4 +38,9 @@ export default class TournamentCache {
     );
     await this.tournamentPlayerCache.registerPlayers(input.tournamentId, input.playerIds);
   }
+
+  getTournamentMeta(tournamentId: number) {
+    this.logger.info(`Retrieving tournament meta for ${tournamentId}`);
+    return this.tournamentMetaCache.
+  }
 }
