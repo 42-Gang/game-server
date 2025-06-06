@@ -2,10 +2,12 @@ import TournamentCache from '../../../storage/cache/tournament/tournament.cache.
 import { Socket } from 'socket.io';
 import { TOURNAMENT_SOCKET_EVENTS } from '../tournament.event.js';
 import { FastifyBaseLogger } from 'fastify';
+import TournamentPlayerCache from '../../../storage/cache/tournament/tournament.player.cache.js';
 
 export default class TournamentSocketHandler {
   constructor(
     private readonly tournamentCache: TournamentCache,
+    private readonly tournamentPlayerCache: TournamentPlayerCache,
     private readonly logger: FastifyBaseLogger,
   ) {}
 
@@ -24,5 +26,17 @@ export default class TournamentSocketHandler {
       `Tournament info retrieved for tournament ID: ${tournamentId}`,
     );
     socket.emit(TOURNAMENT_SOCKET_EVENTS.MATCH_INFO, tournamentInfo);
+  }
+
+  async handleReady(socket: Socket) {
+    const userId = socket.data.userId;
+    const tournamentId = socket.data.tournamentId;
+
+    this.logger.info(`User ${userId} is ready for tournament ${tournamentId}`);
+    await this.tournamentPlayerCache.setPlayerReady(tournamentId, userId);
+
+    if (await this.tournamentPlayerCache.areAllPlayersReady(tournamentId)) {
+      this.logger.info(`All players are ready for tournament ${tournamentId}`);
+    }
   }
 }

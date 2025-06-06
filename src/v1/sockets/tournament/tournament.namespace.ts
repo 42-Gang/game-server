@@ -26,6 +26,7 @@ export function startTournamentNamespace(namespace: Namespace) {
 
     socket.on(TOURNAMENT_SOCKET_EVENTS.READY, async () => {
       logger.info(`🟢 [/tournament] User ${userId} is ready`);
+      await tournamentSocketHandler.handleReady(socket);
     });
 
     socket.on('disconnect', () => {
