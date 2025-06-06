@@ -39,8 +39,8 @@ export default class TournamentCache {
     await this.tournamentPlayerCache.registerPlayers(input.tournamentId, input.playerIds);
   }
 
-  getTournamentMeta(tournamentId: number) {
+  getTournamentInfo(tournamentId: number) {
     this.logger.info(`Retrieving tournament meta for ${tournamentId}`);
-    return this.tournamentMetaCache.
+    return this.tournamentMetaCache.getTournamentInfo(tournamentId);
   }
 }
