@@ -124,4 +124,8 @@ export default class TournamentPlayerCache {
 
     await this.refreshTTL(tournamentId);
   }
+
+  getAllPlayerIds(tournamentId: number) {
+    return this.getPlayers(tournamentId);
+  }
 }

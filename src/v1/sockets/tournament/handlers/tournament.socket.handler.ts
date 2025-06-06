@@ -3,10 +3,14 @@ import { Namespace, Socket } from 'socket.io';
 import {
   broadcastAllUsersReadySchema,
   broadcastUserReadySchema,
+  PlayerCacheSocketType,
   TOURNAMENT_SOCKET_EVENTS,
+  tournamentInfoSchema,
+  TournamentInfoType,
 } from '../tournament.event.js';
 import { FastifyBaseLogger } from 'fastify';
 import TournamentPlayerCache from '../../../storage/cache/tournament/tournament.player.cache.js';
+import PlayerCache from '../../../storage/cache/player.cache.js';
 
 export default class TournamentSocketHandler {
   constructor(
@@ -14,6 +18,7 @@ export default class TournamentSocketHandler {
     private readonly tournamentPlayerCache: TournamentPlayerCache,
     private readonly logger: FastifyBaseLogger,
     private readonly tournamentNamespace: Namespace,
+    private readonly playerCache: PlayerCache,
   ) {}
 
   async sendTournamentInfo(socket: Socket) {
@@ -30,7 +35,27 @@ export default class TournamentSocketHandler {
       tournamentInfo,
       `Tournament info retrieved for tournament ID: ${tournamentId}`,
     );
-    socket.emit(TOURNAMENT_SOCKET_EVENTS.MATCH_INFO, tournamentInfo);
+
+    const playerIds = await this.tournamentPlayerCache.getAllPlayerIds(tournamentId);
+    const players: PlayerCacheSocketType[] = await Promise.all(
+      playerIds.map(async (playerId) => {
+        const player = await this.playerCache.getPlayer(playerId);
+        return {
+          userId: player.id,
+          nickname: player.nickname,
+          profileImage: player.avatar,
+          isReady: false,
+        };
+      }),
+    );
+
+    const message: TournamentInfoType = {
+      mode: tournamentInfo.meta.mode,
+      size: tournamentInfo.meta.size,
+      players,
+    };
+    tournamentInfoSchema.parse(message);
+    socket.emit(TOURNAMENT_SOCKET_EVENTS.MATCH_INFO, message);
   }
 
   async handleReady(socket: Socket) {
