@@ -10,7 +10,7 @@ export const playerCacheSocketSchema = z.object({
   userId: z.number(),
   nickname: z.string(),
   profileImage: z.string(),
-  isReady: z.boolean(),
+  state: z.enum(['NOTHING', 'READY', 'PLAYING', 'ELIMINATED']),
 });
 
 export type PlayerCacheSocketType = z.infer<typeof playerCacheSocketSchema>;

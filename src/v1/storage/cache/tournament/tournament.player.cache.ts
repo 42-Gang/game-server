@@ -128,4 +128,20 @@ export default class TournamentPlayerCache {
   getAllPlayerIds(tournamentId: number) {
     return this.getPlayers(tournamentId);
   }
+
+  async getPlayerState(
+    tournamentId: number,
+    userId: number,
+  ): Promise<'NOTHING' | 'READY' | 'PLAYING' | 'ELIMINATED'> {
+    if (await this.redisClient.sismember(this.getReadyPlayersKey(tournamentId), userId)) {
+      return 'READY';
+    }
+    if (await this.redisClient.sismember(this.getPlayingPlayersKey(tournamentId), userId)) {
+      return 'PLAYING';
+    }
+    if (await this.redisClient.sismember(this.getEliminatedPlayersKey(tournamentId), userId)) {
+      return 'ELIMINATED';
+    }
+    return 'NOTHING';
+  }
 }
