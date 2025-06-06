@@ -26,9 +26,20 @@ export default class PlayerCache {
 
   async setPlayer(playerId: string, data: PlayerCacheType): Promise<void> {
     const playerKey = this.getPlayerKey(playerId);
+    playerCacheSchema.parse(data);
 
-    await this.redisClient.hset(playerKey, data);
+    await this.redisClient.set(playerKey, JSON.stringify(data));
     await this.refreshTTL(playerKey);
+  }
+
+  async getPlayer(playerId: string): Promise<PlayerCacheType> {
+    const playerKey = this.getPlayerKey(playerId);
+    const rawPlayerData = await this.redisClient.get(playerKey);
+    if (!rawPlayerData) {
+      throw new Error(`Player with ID ${playerId} not found in cache.`);
+    }
+    const playerData = JSON.parse(rawPlayerData);
+    return playerCacheSchema.parse(playerData);
   }
 
   private async refreshTTL(playerKey: string) {

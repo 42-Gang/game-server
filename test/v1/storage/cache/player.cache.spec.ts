@@ -42,12 +42,13 @@ describe('setPlayer', () => {
     await cache.setPlayer('456', data);
 
     const key = `${BASE_PLAYER_KEY_PREFIX}:456`;
-    const raw = await redis.hgetall(key);
+    const raw = await redis.get(key);
+    const parsed = JSON.parse(raw);
 
     // Redis는 문자열로 저장하므로 비교할 때 타입 변환
-    expect(Number(raw.id)).toBe(data.id);
-    expect(raw.nickname).toBe(data.nickname);
-    expect(raw.avatar).toBe(data.avatar);
+    expect(parsed.id).toBe(data.id);
+    expect(parsed.nickname).toBe(data.nickname);
+    expect(parsed.avatar).toBe(data.avatar);
   });
 
   it('should set a TTL on the player key', async () => {
@@ -82,13 +83,32 @@ describe('setPlayer', () => {
     await cache.setPlayer('321', secondData);
 
     const key = `${BASE_PLAYER_KEY_PREFIX}:321`;
-    const raw = await redis.hgetall(key);
+    const raw = await redis.get(key);
+    const parsed = JSON.parse(raw);
 
-    expect(raw.nickname).toBe(secondData.nickname);
-    expect(raw.avatar).toBe(secondData.avatar);
+    expect(parsed.nickname).toBe(secondData.nickname);
+    expect(parsed.avatar).toBe(secondData.avatar);
 
     // TTL should still be > 0 (reset on second set)
     const ttl = await redis.ttl(key);
     expect(ttl).toBeGreaterThan(0);
+  });
+});
+
+describe('getPlayer', () => {
+  it('should retrieve player data from cache', async () => {
+    const data: PlayerCacheType = {
+      id: 654,
+      nickname: 'dave',
+      avatar: 'https://example.com/dave.png',
+    };
+    await cache.setPlayer('654', data);
+
+    const playerData = await cache.getPlayer('654');
+    expect(playerData).toEqual(data);
+  });
+
+  it('should throw an error if player does not exist', async () => {
+    await expect(cache.getPlayer('999')).rejects.toThrow('Player with ID 999 not found in cache.');
   });
 });
