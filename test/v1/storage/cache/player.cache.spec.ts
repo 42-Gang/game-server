@@ -15,7 +15,7 @@ beforeEach(async () => {
 
 describe('isExists', () => {
   it('should return false if player does not exist', async () => {
-    const exists = await cache.isExists('123');
+    const exists = await cache.isExists(123);
     expect(exists).toBe(false);
   });
 
@@ -25,9 +25,9 @@ describe('isExists', () => {
       nickname: 'testUser',
       avatar: 'https://example.com/avatar.png',
     };
-    await cache.setPlayer('123', data);
+    await cache.setPlayer(123, data);
 
-    const exists = await cache.isExists('123');
+    const exists = await cache.isExists(123);
     expect(exists).toBe(true);
   });
 });
@@ -39,7 +39,7 @@ describe('setPlayer', () => {
       nickname: 'alice',
       avatar: 'https://example.com/alice.png',
     };
-    await cache.setPlayer('456', data);
+    await cache.setPlayer(456, data);
 
     const key = `${BASE_PLAYER_KEY_PREFIX}:456`;
     const raw = await redis.get(key);
@@ -57,7 +57,7 @@ describe('setPlayer', () => {
       nickname: 'bob',
       avatar: 'https://example.com/bob.png',
     };
-    await cache.setPlayer('789', data);
+    await cache.setPlayer(789, data);
 
     const key = `${BASE_PLAYER_KEY_PREFIX}:789`;
     const ttl = await redis.ttl(key);
@@ -70,7 +70,7 @@ describe('setPlayer', () => {
       nickname: 'charlie',
       avatar: 'https://example.com/charlie.png',
     };
-    await cache.setPlayer('321', firstData);
+    await cache.setPlayer(321, firstData);
 
     // wait a moment and overwrite
     await new Promise((r) => setTimeout(r, 10));
@@ -80,7 +80,7 @@ describe('setPlayer', () => {
       nickname: 'charlieUpdated',
       avatar: 'https://example.com/charlie2.png',
     };
-    await cache.setPlayer('321', secondData);
+    await cache.setPlayer(321, secondData);
 
     const key = `${BASE_PLAYER_KEY_PREFIX}:321`;
     const raw = await redis.get(key);
@@ -102,13 +102,13 @@ describe('getPlayer', () => {
       nickname: 'dave',
       avatar: 'https://example.com/dave.png',
     };
-    await cache.setPlayer('654', data);
+    await cache.setPlayer(654, data);
 
-    const playerData = await cache.getPlayer('654');
+    const playerData = await cache.getPlayer(654);
     expect(playerData).toEqual(data);
   });
 
   it('should throw an error if player does not exist', async () => {
-    await expect(cache.getPlayer('999')).rejects.toThrow('Player with ID 999 not found in cache.');
+    await expect(cache.getPlayer(999)).rejects.toThrow('Player with ID 999 not found in cache.');
   });
 });
