@@ -43,9 +43,11 @@ describe('setPlayer', () => {
 
     const key = `${BASE_PLAYER_KEY_PREFIX}:456`;
     const raw = await redis.get(key);
-    const parsed = JSON.parse(raw);
+    if (!raw) {
+      throw new Error(`Player data for ID 456 not found in Redis.`);
+    }
 
-    // Redis는 문자열로 저장하므로 비교할 때 타입 변환
+    const parsed = JSON.parse(raw);
     expect(parsed.id).toBe(data.id);
     expect(parsed.nickname).toBe(data.nickname);
     expect(parsed.avatar).toBe(data.avatar);
@@ -84,8 +86,11 @@ describe('setPlayer', () => {
 
     const key = `${BASE_PLAYER_KEY_PREFIX}:321`;
     const raw = await redis.get(key);
-    const parsed = JSON.parse(raw);
+    if (!raw) {
+      throw new Error(`Player data for ID 321 not found in Redis.`);
+    }
 
+    const parsed = JSON.parse(raw);
     expect(parsed.nickname).toBe(secondData.nickname);
     expect(parsed.avatar).toBe(secondData.avatar);
 
