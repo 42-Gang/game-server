@@ -14,17 +14,17 @@ export const playerCacheSchema = z.object({
 export default class PlayerCache {
   constructor(private readonly redisClient: Redis) {}
 
-  private getPlayerKey(playerId: string): string {
+  private getPlayerKey(playerId: number): string {
     return `${BASE_PLAYER_KEY_PREFIX}:${playerId}`;
   }
 
-  async isExists(playerId: string): Promise<boolean> {
+  async isExists(playerId: number): Promise<boolean> {
     const playerKey = this.getPlayerKey(playerId);
     const exists = await this.redisClient.exists(playerKey);
     return exists === 1;
   }
 
-  async setPlayer(playerId: string, data: PlayerCacheType): Promise<void> {
+  async setPlayer(playerId: number, data: PlayerCacheType): Promise<void> {
     const playerKey = this.getPlayerKey(playerId);
     playerCacheSchema.parse(data);
 
@@ -32,7 +32,7 @@ export default class PlayerCache {
     await this.refreshTTL(playerKey);
   }
 
-  async getPlayer(playerId: string): Promise<PlayerCacheType> {
+  async getPlayer(playerId: number): Promise<PlayerCacheType> {
     const playerKey = this.getPlayerKey(playerId);
     const rawPlayerData = await this.redisClient.get(playerKey);
     if (!rawPlayerData) {
