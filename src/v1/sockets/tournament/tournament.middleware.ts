@@ -17,10 +17,13 @@ export async function tournamentMiddleware(socket: Socket, next: NextFunction) {
 
     const { diContainer } = socket.nsp.server;
     const tournamentService = diContainer.resolve<TournamentService>('tournamentService');
-    if (!(await tournamentService.isUserParticipant(parseInt(tournamentId), userId))) {
+
+    const parsedTournamentId = parseInt(tournamentId);
+    if (!(await tournamentService.isUserParticipant(parsedTournamentId, userId))) {
       return next(new Error('User is not a participant in this tournament'));
     }
 
+    socket.data.tournamentId = parsedTournamentId;
     next();
   } catch (e) {
     console.error('Socket middleware error:', e);
