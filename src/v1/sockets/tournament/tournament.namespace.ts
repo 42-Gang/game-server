@@ -10,9 +10,12 @@ export function startTournamentNamespace(namespace: Namespace) {
   namespace.use(tournamentMiddleware);
 
   namespace.on('connection', async (socket: Socket) => {
-    const socketCache: SocketCache = namespace.server.diContainer.resolve('socketCache');
+    const diContainer = namespace.server.diContainer;
+
+    const socketCache: SocketCache = diContainer.resolve('socketCache');
     const tournamentSocketHandler: TournamentSocketHandler =
-      namespace.server.diContainer.resolve('tournamentSocketHandler');
+      diContainer.resolve('tournamentSocketHandler');
+
     const logger = namespace.server.logger;
     const userId = socket.data.userId;
     const tournamentId = socket.data.tournamentId;
