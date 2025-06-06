@@ -4,6 +4,17 @@
     "outDir": "dist",
     "rootDir": "./",
     "baseUrl": "./",
+    "typeRoots": [
+      "node_modules/@types",
+      "@types",
+      "src/types",
+      "src/v1/types"
+    ]
   },
-  "include": ["src/**/*.*", "src/**/*d.ts", "@types"],
+  "include": [
+    "src/**/*.*",
+    "@types/**/*.d.ts",
+    "src/v1/types/**/*.d.ts",
+    "src/types/**/*.d.ts"
+  ]
 }
