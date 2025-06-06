@@ -2,12 +2,20 @@ import { BASE_TOURNAMENT_KEY_PREFIX, TOURNAMENT_TTL } from './tournament.cache.j
 import { Redis } from 'ioredis';
 import { TypeOf, z } from 'zod';
 
+export type tournamentStateType = TypeOf<typeof tournamentStateSchema>;
 export const tournamentStateSchema = z.enum(['IN_PROGRESS', 'FINISHED']);
 
 export type tournamentMetaType = TypeOf<typeof tournamentMetaSchema>;
 export const tournamentMetaSchema = z.object({
   mode: z.enum(['AUTO', 'CUSTOM']),
   size: z.number(),
+});
+
+export type tournamentInfoType = TypeOf<typeof tournamentInfoSchema>;
+export const tournamentInfoSchema = z.object({
+  meta: tournamentMetaSchema,
+  currentRound: z.number(),
+  state: tournamentStateSchema,
 });
 
 export default class TournamentMetaCache {
@@ -29,28 +37,69 @@ export default class TournamentMetaCache {
     return `${this.getTournamentKey(tournamentId)}:currentRound`;
   }
 
-  private async initializeMeta(tournamentMetaKey: string, tournamentMeta: tournamentMetaType) {
+  private async initializeMeta(tournamentId: number, tournamentMeta: tournamentMetaType) {
+    const tournamentMetaKey = this.getTournamentMetaKey(tournamentId);
     await this.redisClient.hset(tournamentMetaKey, tournamentMeta);
   }
 
-  private async setTournamentCurrentRound(tournamentCurrentRoundKey: string, size: number) {
+  private async getTournamentMeta(tournamentId: number): Promise<tournamentMetaType> {
+    const tournamentMetaKey = this.getTournamentMetaKey(tournamentId);
+    const meta = await this.redisClient.hgetall(tournamentMetaKey);
+    if (Object.keys(meta).length === 0) {
+      throw new Error(`Tournament meta not found for tournament ${tournamentId}`);
+    }
+    return {
+      mode: meta.mode as 'AUTO' | 'CUSTOM',
+      size: parseInt(meta.size, 10),
+    };
+  }
+
+  private async setTournamentCurrentRound(tournamentId: number, size: number) {
+    const tournamentCurrentRoundKey = this.getTournamentCurrentRoundKey(tournamentId);
     await this.redisClient.set(tournamentCurrentRoundKey, size);
   }
 
-  private async setTournamentState(tournamentStateKey: string) {
+  private async getTournamentCurrentRound(tournamentId: number): Promise<number> {
+    const key = this.getTournamentCurrentRoundKey(tournamentId);
+    const currentRound = await this.redisClient.get(key);
+    if (currentRound === null) {
+      throw new Error(`Current round not found for tournament ${tournamentId}`);
+    }
+    return parseInt(currentRound, 10);
+  }
+
+  private async setTournamentState(tournamentId: number) {
+    const tournamentStateKey = this.getTournamentStateKey(tournamentId);
     await this.redisClient.set(tournamentStateKey, tournamentStateSchema.enum.IN_PROGRESS);
   }
 
-  async createTournamentMeta(tournamentId: number, metaData: tournamentMetaType): Promise<void> {
-    const tournamentMetaKey = this.getTournamentMetaKey(tournamentId);
-    const tournamentStateKey = this.getTournamentStateKey(tournamentId);
-    const tournamentCurrentRoundKey = this.getTournamentCurrentRoundKey(tournamentId);
+  private async getTournamentState(tournamentId: number): Promise<tournamentStateType> {
+    const key = this.getTournamentStateKey(tournamentId);
+    const state = await this.redisClient.get(key);
+    if (state === null) {
+      throw new Error(`Tournament state not found for tournament ${tournamentId}`);
+    }
+    return tournamentStateSchema.parse(state);
+  }
 
-    await this.initializeMeta(tournamentMetaKey, metaData);
-    await this.setTournamentState(tournamentStateKey);
-    await this.setTournamentCurrentRound(tournamentCurrentRoundKey, metaData.size);
+  async createTournamentMeta(tournamentId: number, metaData: tournamentMetaType): Promise<void> {
+    await this.initializeMeta(tournamentId, metaData);
+    await this.setTournamentState(tournamentId);
+    await this.setTournamentCurrentRound(tournamentId, metaData.size);
 
     await this.refreshTTL(tournamentId);
+  }
+
+  async getTournamentInfo(tournamentId: number): Promise<tournamentInfoType> {
+    const meta = await this.getTournamentMeta(tournamentId);
+    const currentRound = await this.getTournamentCurrentRound(tournamentId);
+    const state = await this.getTournamentState(tournamentId);
+
+    return {
+      meta,
+      currentRound,
+      state,
+    };
   }
 
   private async refreshTTL(tournamentId: number) {
