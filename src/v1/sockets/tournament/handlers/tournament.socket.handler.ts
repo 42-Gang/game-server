@@ -40,11 +40,12 @@ export default class TournamentSocketHandler {
     const players: PlayerCacheSocketType[] = await Promise.all(
       playerIds.map(async (playerId) => {
         const player = await this.playerCache.getPlayer(playerId);
+        const state = await this.tournamentPlayerCache.getPlayerState(tournamentId, playerId);
         return {
           userId: player.id,
           nickname: player.nickname,
           profileImage: player.avatar,
-          isReady: false,
+          state,
         };
       }),
     );
