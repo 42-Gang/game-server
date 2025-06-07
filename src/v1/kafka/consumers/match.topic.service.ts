@@ -3,21 +3,27 @@ import { Namespace } from 'socket.io';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { TOURNAMENT_SOCKET_EVENTS } from '../../sockets/tournament/tournament.event.js';
 
-const participantSchema = z.object({
-  userId: z.number(),
-  username: z.string(),
-});
-type ParticipantType = TypeOf<typeof participantSchema>;
 const handleMatchCreatedInputSchema = z.object({
   matchId: z.number(),
   serverInfo: z.object({
     serverName: z.string(),
   }),
-  participants: z.array(participantSchema),
+  player1Id: z.number(),
+  player2Id: z.number(),
 });
 type HandleMatchCreatedInputType = TypeOf<typeof handleMatchCreatedInputSchema>;
 
-const handleMatchResultInputSchema = z.object({});
+const handleMatchResultInputSchema = z.object({
+  matchId: z.number(),
+  player1Id: z.number(),
+  player2Id: z.number(),
+  score: z.object({
+    player1: z.number(),
+    player2: z.number(),
+  }),
+  winnerId: z.number(),
+  round: z.number(),
+});
 type HandleMatchResultInputType = TypeOf<typeof handleMatchResultInputSchema>;
 
 export default class MatchTopicService {
@@ -29,25 +35,10 @@ export default class MatchTopicService {
   async handleMatchCreated(messageValue: HandleMatchCreatedInputType): Promise<void> {
     handleMatchCreatedInputSchema.parse(messageValue);
 
-    const socketIds = await this.getSocketIds(messageValue.participants);
+    const socketIds = await this.getSocketIds([messageValue.player1Id, messageValue.player2Id]);
     for (const socketId of socketIds) {
       this.tournamentNamespace.to(socketId).emit(TOURNAMENT_SOCKET_EVENTS.MATCH_INFO, messageValue);
     }
-  }
-
-  private async getSocketIds(participants: ParticipantType[]) {
-    return await Promise.all(
-      participants.map(async (participant) => {
-        const socketId = await this.socketCache.getSocketId({
-          namespace: 'tournament',
-          userId: participant.userId,
-        });
-        if (!socketId) {
-          throw new Error(`Socket ID not found for userId: ${participant.userId}`);
-        }
-        return socketId;
-      }),
-    );
   }
 
   async handleMatchResult(messageValue: HandleMatchResultInputType): Promise<void> {
@@ -56,5 +47,20 @@ export default class MatchTopicService {
     // TODO: 매치 결과 DB에 저장
 
     // TODO: 매치 결과(승패 및 점수 등) 해당 토너먼트에 참여한 유저들에게 전달
+  }
+
+  private async getSocketIds(playerIds: number[]) {
+    return await Promise.all(
+      playerIds.map(async (playerId) => {
+        const socketId = await this.socketCache.getSocketId({
+          namespace: 'tournament',
+          userId: playerId,
+        });
+        if (!socketId) {
+          throw new Error(`Socket ID not found for userId: ${playerId}`);
+        }
+        return socketId;
+      }),
+    );
   }
 }
