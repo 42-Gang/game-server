@@ -15,4 +15,5 @@ export const TOURNAMENT_EVENTS = {
 export const MATCH_EVENTS = {
   REQUEST: 'REQUEST',
   CREATED: 'CREATED',
+  RESULT: 'RESULT',
 };
