@@ -67,11 +67,16 @@ export default class TournamentSocketHandler {
     await this.tournamentPlayerCache.setPlayerReady(tournamentId, userId);
     this.broadcastUserReady(tournamentId, userId);
 
-    if (await this.tournamentPlayerCache.areAllPlayersReady(tournamentId)) {
-      this.logger.info(`All players are ready for tournament ${tournamentId}`);
-      this.broadcastAllUsersReady(tournamentId);
-      await this.tournamentPlayerCache.movePlayersToPlaying(tournamentId);
+    if (!(await this.tournamentPlayerCache.areAllPlayersReady(tournamentId))) {
+      return;
     }
+
+    this.logger.info(`All players are ready for tournament ${tournamentId}`);
+    this.broadcastAllUsersReady(tournamentId);
+    await this.tournamentPlayerCache.movePlayersToPlaying(tournamentId);
+
+    // TODO: 각 플레이어에 배정된 matchId 조회
+    // TODO: 매치 생성 kafka 프로듀서 호출
   }
 
   private broadcastAllUsersReady(tournamentId: number) {
