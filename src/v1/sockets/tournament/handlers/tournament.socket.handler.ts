@@ -70,6 +70,7 @@ export default class TournamentSocketHandler {
     if (await this.tournamentPlayerCache.areAllPlayersReady(tournamentId)) {
       this.logger.info(`All players are ready for tournament ${tournamentId}`);
       this.broadcastAllUsersReady(tournamentId);
+      await this.tournamentPlayerCache.movePlayersToPlaying(tournamentId);
     }
   }
 
