@@ -1,7 +1,7 @@
 import { TypeOf, z } from 'zod';
 import { Namespace } from 'socket.io';
 import SocketCache from '../../storage/cache/socket.cache.js';
-import { MATCH_EVENTS } from '../constants.js';
+import { TOURNAMENT_SOCKET_EVENTS } from '../../sockets/tournament/tournament.event.js';
 
 const participantSchema = z.object({
   userId: z.number(),
@@ -31,7 +31,7 @@ export default class MatchTopicService {
 
     const socketIds = await this.getSocketIds(messageValue.participants);
     for (const socketId of socketIds) {
-      this.tournamentNamespace.to(socketId).emit(MATCH_EVENTS.CREATED, messageValue);
+      this.tournamentNamespace.to(socketId).emit(TOURNAMENT_SOCKET_EVENTS.MATCH_INFO, messageValue);
     }
   }
 
