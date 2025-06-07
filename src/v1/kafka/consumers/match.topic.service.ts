@@ -4,6 +4,7 @@ import SocketCache from '../../storage/cache/socket.cache.js';
 import { TOURNAMENT_SOCKET_EVENTS } from '../../sockets/tournament/tournament.event.js';
 
 const handleMatchCreatedInputSchema = z.object({
+  tournamentId: z.number(),
   matchId: z.number(),
   serverInfo: z.object({
     serverName: z.string(),
@@ -14,6 +15,7 @@ const handleMatchCreatedInputSchema = z.object({
 type HandleMatchCreatedInputType = TypeOf<typeof handleMatchCreatedInputSchema>;
 
 const handleMatchResultInputSchema = z.object({
+  tournamentId: z.number(),
   matchId: z.number(),
   player1Id: z.number(),
   player2Id: z.number(),
@@ -46,7 +48,9 @@ export default class MatchTopicService {
 
     // TODO: 매치 결과 DB에 저장
 
-    // TODO: 매치 결과(승패 및 점수 등) 해당 토너먼트에 참여한 유저들에게 전달
+    this.tournamentNamespace
+      .to(`tournament:${messageValue.tournamentId}`)
+      .emit(TOURNAMENT_SOCKET_EVENTS.GAME_RESULT, messageValue);
   }
 
   private async getSocketIds(playerIds: number[]) {
