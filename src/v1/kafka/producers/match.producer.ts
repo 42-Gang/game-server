@@ -7,10 +7,15 @@ export async function matchRequestProducer(matchId: number, player1Id: number, p
     matchId,
     player1Id,
     player2Id,
+    timestamp: new Date().toISOString(),
   });
 
   await producer.send({
     topic: TOPICS.MATCH,
-    messages: [message],
+    messages: [
+      {
+        value: JSON.stringify(message),
+      },
+    ],
   });
 }
