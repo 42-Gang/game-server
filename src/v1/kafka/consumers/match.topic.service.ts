@@ -1,19 +1,56 @@
 import { TypeOf, z } from 'zod';
+import { Namespace } from 'socket.io';
+import SocketCache from '../../storage/cache/socket.cache.js';
+import { MATCH_EVENTS } from '../constants.js';
 
-const handleMatchCreatedInputSchema = z.object({});
-type HandleMatchCreatedInput = TypeOf<typeof handleMatchCreatedInputSchema>;
+const participantSchema = z.object({
+  userId: z.number(),
+  username: z.string(),
+});
+type ParticipantType = TypeOf<typeof participantSchema>;
+const handleMatchCreatedInputSchema = z.object({
+  matchId: z.number(),
+  serverInfo: z.object({
+    serverName: z.string(),
+  }),
+  participants: z.array(participantSchema),
+});
+type HandleMatchCreatedInputType = TypeOf<typeof handleMatchCreatedInputSchema>;
 
 const handleMatchResultInputSchema = z.object({});
-type HandleMatchResultInput = TypeOf<typeof handleMatchResultInputSchema>;
+type HandleMatchResultInputType = TypeOf<typeof handleMatchResultInputSchema>;
 
 export default class MatchTopicService {
-  async handleMatchCreated(messageValue: HandleMatchCreatedInput): Promise<void> {
+  constructor(
+    private readonly tournamentNamespace: Namespace,
+    private readonly socketCache: SocketCache,
+  ) {}
+
+  async handleMatchCreated(messageValue: HandleMatchCreatedInputType): Promise<void> {
     handleMatchCreatedInputSchema.parse(messageValue);
 
-    // TODO: 매치정보(서버정보 및 매치 ID등) 해당 매치에 참여한 유저들에게 전달
+    const socketIds = await this.getSocketIds(messageValue.participants);
+    for (const socketId of socketIds) {
+      this.tournamentNamespace.to(socketId).emit(MATCH_EVENTS.CREATED, messageValue);
+    }
   }
 
-  async handleMatchResult(messageValue: HandleMatchResultInput): Promise<void> {
+  private async getSocketIds(participants: ParticipantType[]) {
+    return await Promise.all(
+      participants.map(async (participant) => {
+        const socketId = await this.socketCache.getSocketId({
+          namespace: 'tournament',
+          userId: participant.userId,
+        });
+        if (!socketId) {
+          throw new Error(`Socket ID not found for userId: ${participant.userId}`);
+        }
+        return socketId;
+      }),
+    );
+  }
+
+  async handleMatchResult(messageValue: HandleMatchResultInputType): Promise<void> {
     handleMatchResultInputSchema.parse(messageValue);
 
     // TODO: 매치 결과 DB에 저장
