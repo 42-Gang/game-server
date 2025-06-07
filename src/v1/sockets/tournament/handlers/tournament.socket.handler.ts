@@ -76,6 +76,7 @@ export default class TournamentSocketHandler {
     await this.tournamentPlayerCache.movePlayersToPlaying(tournamentId);
 
     // TODO: 각 플레이어에 배정된 matchId 조회
+    // TODO: 매치를 생성할 매치서버 조회
     // TODO: 매치 생성 kafka 프로듀서 호출
   }
 
