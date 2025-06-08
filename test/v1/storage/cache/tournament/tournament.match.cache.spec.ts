@@ -1,74 +1,107 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
 import { redis } from '../../../../../src/plugins/redis.js';
 import TournamentMatchCache from '../../../../../src/v1/storage/cache/tournament/tournament.match.cache.js';
-
-// Prisma의 Match 타입을 그대로 사용할 수 없으므로, 필요한 필드만 정의
-type MatchLike = {
-  id: number;
-  tournamentId: number;
-  round: number;
-  player1Id?: number;
-  player2Id?: number;
-  player1Score?: number;
-  player2Score?: number;
-  status?: string;
-  winnerId?: number;
-};
 
 let cache: TournamentMatchCache;
 const tournamentId = 1;
 const baseMatchesKey = `tournament:${tournamentId}:matches`;
 
 beforeEach(async () => {
-  // 매 테스트마다 Redis를 초기화
   await redis.flushdb();
   cache = new TournamentMatchCache(redis);
 });
 
-describe('createMatch & getMatchesInRound', () => {
-  it('should add a single match to the correct round set', async () => {
-    const matchData: MatchLike = { id: 101, tournamentId: 10, round: 1 };
-    await cache.createMatch(tournamentId, matchData.id, matchData as any);
-
-    // 내부적으로 sadd 하는 키: "tournament:1:matches:round:1"
-    const roundKey = `${baseMatchesKey}:round:1`;
-    const members = await redis.smembers(roundKey);
-    expect(members.map(Number)).toEqual([101]);
+describe('createMatch and related behavior', () => {
+  it('adds match without players correctly', async () => {
+    const matchId = 100;
+    await cache.createMatch(tournamentId, matchId, { id: matchId, tournamentId, round: 1 } as any);
+    const rounds = await redis.smembers(`${baseMatchesKey}:round:1`);
+    expect(rounds.map(Number)).toEqual([matchId]);
+    // players set should be empty or not created
+    const playerMembers = await redis.smembers(`${baseMatchesKey}:match:${matchId}:players`);
+    expect(playerMembers).toEqual([]);
   });
 
-  it('getMatchesInRound should return all match IDs in the given round', async () => {
-    // 세 개의 매치를 서로 다른 라운드에 추가
-    await cache.createMatch(tournamentId, 201, { id: 201, tournamentId: 10, round: 2 } as any);
-    await cache.createMatch(tournamentId, 202, { id: 202, tournamentId: 10, round: 2 } as any);
-    await cache.createMatch(tournamentId, 301, { id: 301, tournamentId: 10, round: 3 } as any);
+  it('adds match with two players correctly', async () => {
+    const matchId = 200;
+    const p1 = 10;
+    const p2 = 20;
+    await cache.createMatch(tournamentId, matchId, {
+      id: matchId,
+      tournamentId,
+      round: 2,
+      player1Id: p1,
+      player2Id: p2,
+    } as any);
+    // match in round
+    const roundMatches = await redis.smembers(`${baseMatchesKey}:round:2`);
+    expect(roundMatches.map(Number)).toEqual([matchId]);
+    // players set
+    const players = await cache.getPlayersInMatch(tournamentId, matchId);
+    expect(players.sort((a, b) => a - b)).toEqual([p1, p2]);
+  });
+});
 
-    // Round 2 매치 조회
-    const round2Matches = await cache.getMatchesInRound(tournamentId, 2);
-    // Set이므로 순서는 보장되지 않지만, 두 개의 값이 들어 있어야 함
-    expect(round2Matches.sort((a, b) => a - b)).toEqual([201, 202]);
-
-    // Round 3 매치 조회
-    const round3Matches = await cache.getMatchesInRound(tournamentId, 3);
-    expect(round3Matches).toEqual([301]);
+describe('getMatchesInRound utility', () => {
+  it('returns empty array for no matches', async () => {
+    const empty = await cache.getMatchesInRound(tournamentId, 5);
+    expect(empty).toEqual([]);
   });
 
-  it('getMatchesInRound should return an empty array if no matches in that round', async () => {
-    const emptyMatches = await cache.getMatchesInRound(tournamentId, 5);
-    expect(emptyMatches).toEqual([]);
+  it('isolates matches per tournament and round', async () => {
+    await cache.createMatch(1, 300, { id: 300, tournamentId: 1, round: 3 } as any);
+    await cache.createMatch(2, 300, { id: 300, tournamentId: 2, round: 3 } as any);
+    const t1 = await cache.getMatchesInRound(1, 3);
+    const t2 = await cache.getMatchesInRound(2, 3);
+    expect(t1).toEqual([300]);
+    expect(t2).toEqual([300]);
+  });
+});
+
+describe('removeMatchInRound behavior', () => {
+  it('removes match', async () => {
+    const matchId = 400;
+    await cache.createMatch(tournamentId, matchId, { id: matchId, tournamentId, round: 4 } as any);
+    // ensure TTL after create
+    const ttlBefore = await redis.ttl(`${baseMatchesKey}:round:4`);
+    expect(ttlBefore).toBeGreaterThan(0);
+
+    await cache.removeMatchInRound(tournamentId, 4, matchId);
+    const exists = await redis.smembers(`${baseMatchesKey}:round:4`);
+    expect(exists).toEqual([]);
   });
 
-  it('should isolate matches between different tournaments', async () => {
-    // tournamentId=1에 match 401을 round=4로 추가
-    await cache.createMatch(1, 401, { id: 401, tournamentId: 10, round: 4 } as any);
-    // tournamentId=2에도 같은 matchId를 같은 라운드로 추가
-    await cache.createMatch(2, 401, { id: 401, tournamentId: 10, round: 4 } as any);
+  it('removes match when present and updates TTL', async () => {
+    const matchId = 400;
+    await cache.createMatch(tournamentId, matchId, { id: matchId, tournamentId, round: 4 } as any);
+    const ttlBefore = await redis.ttl(`${baseMatchesKey}:round:4`);
+    expect(ttlBefore).toBeGreaterThan(0);
 
-    // tournament 1의 round 4
-    const t1Round4 = await cache.getMatchesInRound(1, 4);
-    expect(t1Round4).toEqual([401]);
+    await cache.removeMatchInRound(tournamentId, 4, matchId);
+    const exists = await redis.smembers(`${baseMatchesKey}:round:4`);
+    expect(exists).toEqual([]);
 
-    // tournament 2의 round 4
-    const t2Round4 = await cache.getMatchesInRound(2, 4);
-    expect(t2Round4).toEqual([401]);
+    // 존재하는 모든 키에 대해 TTL이 갱신됐는지 확인
+    const keys = await redis.keys(`${baseMatchesKey}:*`);
+    for (const key of keys) {
+      expect(await redis.ttl(key)).toBeGreaterThan(0);
+    }
+  });
+
+  it('throws error when removing non-existent match', async () => {
+    await expect(cache.removeMatchInRound(tournamentId, 9, 999)).rejects.toThrow(
+      `Match with ID 999 not found in round 9 for tournament ${tournamentId}`,
+    );
+  });
+});
+
+describe('isEmptyInRound utility', () => {
+  it('returns true when no matches exist', async () => {
+    expect(await cache.isEmptyInRound(tournamentId, 6)).toBe(true);
+  });
+
+  it('returns false when matches exist', async () => {
+    await cache.createMatch(tournamentId, 500, { id: 500, tournamentId, round: 6 } as any);
+    expect(await cache.isEmptyInRound(tournamentId, 6)).toBe(false);
   });
 });
