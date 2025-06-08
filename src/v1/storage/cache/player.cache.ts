@@ -1,15 +1,8 @@
 import { Redis } from 'ioredis';
-import { TypeOf, z } from 'zod';
+import { playerCacheSchema, PlayerCacheType } from './cache.schema.js';
 
 export const BASE_PLAYER_KEY_PREFIX = `player`;
 export const PLAYER_TTL = 60 * 30;
-
-export type PlayerCacheType = TypeOf<typeof playerCacheSchema>;
-export const playerCacheSchema = z.object({
-  id: z.number(),
-  nickname: z.string(),
-  avatar: z.string().url(),
-});
 
 export default class PlayerCache {
   constructor(private readonly redisClient: Redis) {}

@@ -1,24 +1,13 @@
 import { FastifyBaseLogger } from 'fastify';
-import { tournamentSizeSchema } from '../../../sockets/waiting/schemas/tournament.schema.js';
-import TournamentMatchCache, { matchSchema } from './tournament.match.cache.js';
+import TournamentMatchCache from './tournament.match.cache.js';
 import TournamentMetaCache from './tournament.meta.cache.js';
 import TournamentPlayerCache from './tournament.player.cache.js';
-import { TypeOf, z } from 'zod';
 import PlayerCache from '../player.cache.js';
 import UserServiceClient from '../../../client/user.service.client.js';
+import { createTournamentType } from '../cache.schema.js';
 
 export const BASE_TOURNAMENT_KEY_PREFIX = 'tournament';
 export const TOURNAMENT_TTL = 60 * 30;
-
-export type createTournamentType = TypeOf<typeof createTournamentSchema>;
-
-export const createTournamentSchema = z.object({
-  tournamentId: z.number(),
-  mode: z.enum(['AUTO', 'CUSTOM']),
-  playerIds: z.array(z.number()),
-  size: tournamentSizeSchema,
-  matches: z.array(matchSchema),
-});
 
 export default class TournamentCache {
   constructor(

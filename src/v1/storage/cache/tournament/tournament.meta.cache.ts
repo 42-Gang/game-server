@@ -1,15 +1,12 @@
 import { BASE_TOURNAMENT_KEY_PREFIX, TOURNAMENT_TTL } from './tournament.cache.js';
 import { Redis } from 'ioredis';
 import { TypeOf, z } from 'zod';
-
-export type tournamentStateType = TypeOf<typeof tournamentStateSchema>;
-export const tournamentStateSchema = z.enum(['IN_PROGRESS', 'FINISHED']);
-
-export type tournamentMetaType = TypeOf<typeof tournamentMetaSchema>;
-export const tournamentMetaSchema = z.object({
-  mode: z.enum(['AUTO', 'CUSTOM']),
-  size: z.number(),
-});
+import {
+  tournamentMetaSchema,
+  tournamentMetaType,
+  tournamentStateSchema,
+  tournamentStateType,
+} from '../cache.schema.js';
 
 export type tournamentInfoType = TypeOf<typeof tournamentInfoSchema>;
 export const tournamentInfoSchema = z.object({

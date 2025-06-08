@@ -1,19 +1,6 @@
 import { BASE_TOURNAMENT_KEY_PREFIX, TOURNAMENT_TTL } from './tournament.cache.js';
 import { Redis } from 'ioredis';
-import { TypeOf, z } from 'zod';
-
-export const matchSchema = z.object({
-  tournamentId: z.number().int(),
-  id: z.number().int(),
-  player1Id: z.number().int().nullable().optional(),
-  player2Id: z.number().int().nullable().optional(),
-  player1Score: z.number().int().nullable().optional(),
-  player2Score: z.number().int().nullable().optional(),
-  winner: z.number().int().nullable().optional(),
-  round: z.number().int(),
-});
-
-export type matchType = TypeOf<typeof matchSchema>;
+import { matchSchema, matchType } from '../cache.schema.js';
 
 export default class TournamentMatchCache {
   constructor(private readonly redisClient: Redis) {}

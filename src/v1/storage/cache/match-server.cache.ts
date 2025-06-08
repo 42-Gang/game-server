@@ -1,12 +1,5 @@
 import { Redis } from 'ioredis';
-import { TypeOf, z } from 'zod';
-
-const matchServerInfoSchema = z.object({
-  serverName: z.string(),
-  gameCount: z.number().default(0),
-});
-const matchServerInfoArraySchema = z.array(matchServerInfoSchema);
-type MatchServerInfoArrayType = TypeOf<typeof matchServerInfoArraySchema>;
+import { matchServerInfoArraySchema, MatchServerInfoArrayType } from './cache.schema.js';
 
 export default class MatchServerCache {
   constructor(private readonly redisClient: Redis) {}
