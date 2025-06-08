@@ -115,12 +115,10 @@ export default class TournamentMetaCache {
     const currentRound = await this.getTournamentCurrentRound(tournamentId);
     const nextRound = currentRound / 2;
 
-    if (1 < nextRound) {
-      await this.setTournamentCurrentRound(tournamentId, nextRound);
-      await this.refreshTTL(tournamentId);
-    }
-
-    await this.setTournamentState(tournamentId, tournamentStateSchema.enum.FINISHED);
+    if (1 < nextRound) await this.setTournamentCurrentRound(tournamentId, nextRound);
+    if (nextRound === 1)
+      await this.setTournamentState(tournamentId, tournamentStateSchema.enum.FINISHED);
+    await this.refreshTTL(tournamentId);
     return;
   }
 
