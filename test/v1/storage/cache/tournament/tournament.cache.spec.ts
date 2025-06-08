@@ -1,4 +1,4 @@
-import { beforeEach, expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, describe, vi } from 'vitest';
 import { redis } from '../../../../../src/plugins/redis.js';
 import TournamentCache, {
   BASE_TOURNAMENT_KEY_PREFIX,
@@ -27,10 +27,8 @@ const tournamentId = 555;
 let cache: TournamentCache;
 
 beforeEach(async () => {
-  // 매 테스트마다 Redis를 초기화
   await redis.flushdb();
 
-  // Logger 모킹
   const loggerMock = {
     info: vi.fn(),
     error: vi.fn(),
@@ -43,7 +41,6 @@ beforeEach(async () => {
     silent: vi.fn(() => loggerMock),
   } as unknown as FastifyBaseLogger;
 
-  // 실제 Redis 인스턴스를 넘겨서 하위 캐시들도 테스트
   const metaCache = new TournamentMetaCache(redis);
   const matchCache = new TournamentMatchCache(redis);
   const tournamentPlayerCache = new TournamentPlayerCache(redis);
@@ -83,43 +80,62 @@ it('createTournament should initialize meta, matches, and players', async () => 
 
   await cache.createTournament(input);
 
-  // 1) 메타 정보 확인: hash "tournament:555:meta"
   const metaKey = `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:meta`;
   const metaRaw = await redis.hgetall(metaKey);
   expect(metaRaw.mode).toBe(input.mode);
   expect(Number(metaRaw.size)).toBe(input.size);
 
-  // 1-1) 상태 키 "tournament:555:state" → IN_PROGRESS
   const stateKey = `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:state`;
   const state = await redis.get(stateKey);
   expect(state).toBe('IN_PROGRESS');
 
-  // 1-2) currentRound 키 "tournament:555:currentRound" → size(2)
   const roundKey = `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:currentRound`;
   const currentRound = await redis.get(roundKey);
   expect(Number(currentRound)).toBe(input.size);
 
-  // 2) 매치 정보 확인: 각 라운드별 Set membership
-  // Round 2
-  const round1Key = `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:matches:round:2`;
-  const round1Members = (await redis.smembers(round1Key)).map(Number).sort((a, b) => a - b);
-  expect(round1Members).toEqual([101, 102]);
+  const round2Key = `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:matches:round:2`;
+  const round2Members = (await redis.smembers(round2Key)).map(Number).sort((a, b) => a - b);
+  expect(round2Members).toEqual([101, 102]);
 
-  // Round 1
-  const round2Key = `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:matches:round:1`;
-  const round2Members = (await redis.smembers(round2Key)).map(Number);
-  expect(round2Members).toEqual([201]);
+  const round1Key = `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:matches:round:1`;
+  const round1Members = (await redis.smembers(round1Key)).map(Number);
+  expect(round1Members).toEqual([201]);
 
-  // 3) 플레이어 등록 확인: Set "tournament:555:players"
   const playersKey = `${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:players`;
   const playerMembers = (await redis.smembers(playersKey)).map(Number).sort((a, b) => a - b);
   expect(playerMembers).toEqual(input.playerIds.sort((a, b) => a - b));
 
-  // 4) 모든 관련 키에 TTL이 설정되었는지 확인
   const allKeys = await redis.keys(`${BASE_TOURNAMENT_KEY_PREFIX}:${tournamentId}:*`);
   expect(allKeys.length).toBeGreaterThan(0);
   for (const key of allKeys) {
-    const ttl = await redis.ttl(key);
-    expect(ttl).toBeGreaterThan(0);
+    expect(await redis.ttl(key)).toBeGreaterThan(0);
   }
+});
+
+describe('getTournamentInfo and getAllPlayerIds', () => {
+  const input = {
+    tournamentId,
+    mode: 'CUSTOM' as const,
+    size: 4 as const,
+    playerIds: [5, 6, 7],
+    matches: [{ tournamentId: 10, id: 301, round: 3 } as MatchLike] as MatchLike[],
+  };
+
+  beforeEach(async () => {
+    await cache.createTournament(input);
+  });
+
+  it('getTournamentInfo should return full tournament info', async () => {
+    const info = await cache.getTournamentInfo(tournamentId);
+    expect(info).toEqual({
+      meta: { mode: input.mode, size: input.size },
+      currentRound: input.size,
+      state: 'IN_PROGRESS',
+    });
+  });
+
+  it('getAllPlayerIds should return all registered player IDs', async () => {
+    const ids = await cache.getAllPlayerIds(tournamentId);
+    expect(ids.sort((a, b) => a - b)).toEqual(input.playerIds.sort((a, b) => a - b));
+  });
 });
