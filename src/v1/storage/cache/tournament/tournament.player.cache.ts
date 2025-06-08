@@ -142,7 +142,12 @@ export default class TournamentPlayerCache {
       throw new Error(`Player ${userId} is not currently playing in tournament ${tournamentId}`);
     }
 
-    await this.eliminatePlayer(tournamentId, userId);
+    await this.redisClient
+      .multi()
+      .srem(this.getPlayingPlayersKey(tournamentId), userId)
+      .sadd(this.getEliminatedPlayersKey(tournamentId), userId)
+      .exec();
+
     await this.refreshTTL(tournamentId);
   }
 
