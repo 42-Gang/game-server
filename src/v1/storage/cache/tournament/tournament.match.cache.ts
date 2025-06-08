@@ -68,6 +68,23 @@ export default class TournamentMatchCache {
     return players.map(Number);
   }
 
+  async removeMatchInRound(tournamentId: number, round: number, matchId: number): Promise<void> {
+    const matchesByRoundKey = this.getMatchesByRoundKey(tournamentId, round);
+    if (!(await this.redisClient.srem(matchesByRoundKey, matchId))) {
+      throw new Error(
+        `Match with ID ${matchId} not found in round ${round} for tournament ${tournamentId}`,
+      );
+    }
+
+    await this.refreshTTL(tournamentId);
+  }
+
+  async isEmptyInRound(tournamentId: number, round: number): Promise<boolean> {
+    const matchesByRoundKey = this.getMatchesByRoundKey(tournamentId, round);
+    const count = await this.redisClient.scard(matchesByRoundKey);
+    return count === 0;
+  }
+
   private async refreshTTL(tournamentId: number) {
     const baseKey = this.getMatchesKey(tournamentId);
     const pattern = `${baseKey}:*`;

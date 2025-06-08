@@ -68,9 +68,9 @@ export default class TournamentMetaCache {
     return parseInt(currentRound, 10);
   }
 
-  private async setTournamentState(tournamentId: number) {
+  private async setTournamentState(tournamentId: number, state: tournamentStateType) {
     const tournamentStateKey = this.getTournamentStateKey(tournamentId);
-    await this.redisClient.set(tournamentStateKey, tournamentStateSchema.enum.IN_PROGRESS);
+    await this.redisClient.set(tournamentStateKey, state);
   }
 
   private async getTournamentState(tournamentId: number): Promise<tournamentStateType> {
@@ -84,7 +84,7 @@ export default class TournamentMetaCache {
 
   async createTournamentMeta(tournamentId: number, metaData: tournamentMetaType): Promise<void> {
     await this.initializeMeta(tournamentId, metaData);
-    await this.setTournamentState(tournamentId);
+    await this.setTournamentState(tournamentId, tournamentStateSchema.enum.IN_PROGRESS);
     await this.setTournamentCurrentRound(tournamentId, metaData.size);
 
     await this.refreshTTL(tournamentId);
@@ -104,6 +104,24 @@ export default class TournamentMetaCache {
 
   async getCurrentRound(tournamentId: number): Promise<number> {
     return this.getTournamentCurrentRound(tournamentId);
+  }
+
+  async isFinished(tournamentId: number): Promise<boolean> {
+    const state = await this.getTournamentState(tournamentId);
+    return state === tournamentStateSchema.enum.FINISHED;
+  }
+
+  async moveToNextRound(tournamentId: number): Promise<void> {
+    const currentRound = await this.getTournamentCurrentRound(tournamentId);
+    const nextRound = currentRound / 2;
+
+    if (1 < nextRound) {
+      await this.setTournamentCurrentRound(tournamentId, nextRound);
+      await this.refreshTTL(tournamentId);
+    }
+
+    await this.setTournamentState(tournamentId, tournamentStateSchema.enum.FINISHED);
+    return;
   }
 
   private async refreshTTL(tournamentId: number) {

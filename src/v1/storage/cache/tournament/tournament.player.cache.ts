@@ -119,7 +119,6 @@ export default class TournamentPlayerCache {
 
   async eliminatePlayer(tournamentId: number, userId: number): Promise<void> {
     const eliminatedPlayersKey = this.getEliminatedPlayersKey(tournamentId);
-
     await this.redisClient.multi().sadd(eliminatedPlayersKey, userId).exec();
 
     await this.refreshTTL(tournamentId);
@@ -127,6 +126,24 @@ export default class TournamentPlayerCache {
 
   getAllPlayerIds(tournamentId: number) {
     return this.getPlayers(tournamentId);
+  }
+
+  private async isPlayerPlaying(tournamentId: number, userId: number): Promise<boolean> {
+    return (
+      (await this.redisClient.sismember(this.getPlayingPlayersKey(tournamentId), userId)) === 1
+    );
+  }
+
+  async movePlayerToEliminated(tournamentId: number, userId: number): Promise<void> {
+    if (!(await this.isActivePlayer(tournamentId, userId))) {
+      throw new Error(`Player ${userId} is not an active player in tournament ${tournamentId}`);
+    }
+    if (!(await this.isPlayerPlaying(tournamentId, userId))) {
+      throw new Error(`Player ${userId} is not currently playing in tournament ${tournamentId}`);
+    }
+
+    await this.eliminatePlayer(tournamentId, userId);
+    await this.refreshTTL(tournamentId);
   }
 
   async getPlayerState(
