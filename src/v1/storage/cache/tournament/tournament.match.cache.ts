@@ -2,18 +2,18 @@ import { BASE_TOURNAMENT_KEY_PREFIX, TOURNAMENT_TTL } from './tournament.cache.j
 import { Redis } from 'ioredis';
 import { TypeOf, z } from 'zod';
 
-export type matchType = TypeOf<typeof matchSchema>;
-
 export const matchSchema = z.object({
   tournamentId: z.number().int(),
   id: z.number().int(),
-  player1Id: z.number().int().nullable().optional(),
-  player2Id: z.number().int().nullable().optional(),
+  player1Id: z.number().int(),
+  player2Id: z.number().int(),
   player1Score: z.number().int().nullable().optional(),
   player2Score: z.number().int().nullable().optional(),
   winner: z.number().int().nullable().optional(),
   round: z.number().int(),
 });
+
+export type matchType = TypeOf<typeof matchSchema>;
 
 export default class TournamentMatchCache {
   constructor(private readonly redisClient: Redis) {}
@@ -26,9 +26,28 @@ export default class TournamentMatchCache {
     return `${this.getMatchesKey(tournamentId)}:round:${round}`;
   }
 
-  async createMatch(tournamentId: number, matchId: number, matchData: matchType): Promise<void> {
-    const matchesByRoundKey = this.getMatchesByRoundKey(tournamentId, matchData.round);
+  private getMatchPlayerKey(tournamentId: number, matchId: number): string {
+    return `${this.getMatchesKey(tournamentId)}:match:${matchId}:players`;
+  }
+
+  private async addPlayers(
+    tournamentId: number,
+    matchId: number,
+    playerIds: number[],
+  ): Promise<void> {
+    const matchPlayerKey = this.getMatchPlayerKey(tournamentId, matchId);
+    await this.redisClient.sadd(matchPlayerKey, playerIds);
+  }
+
+  private async addMatch(tournamentId: number, round: number, matchId: number) {
+    const matchesByRoundKey = this.getMatchesByRoundKey(tournamentId, round);
     await this.redisClient.sadd(matchesByRoundKey, matchId);
+  }
+
+  async createMatch(tournamentId: number, matchId: number, data: matchType): Promise<void> {
+    const matchData = matchSchema.parse(data);
+    await this.addMatch(tournamentId, matchData.round, matchId);
+    await this.addPlayers(tournamentId, matchId, [matchData.player1Id, matchData.player2Id]);
 
     await this.refreshTTL(tournamentId);
   }
@@ -38,6 +57,12 @@ export default class TournamentMatchCache {
     const members = await this.redisClient.smembers(matchesByRoundKey);
 
     return members.map(Number);
+  }
+
+  async getPlayersInMatch(tournamentId: number, matchId: number): Promise<number[]> {
+    const matchPlayerKey = this.getMatchPlayerKey(tournamentId, matchId);
+    const players = await this.redisClient.smembers(matchPlayerKey);
+    return players.map(Number);
   }
 
   private async refreshTTL(tournamentId: number) {
