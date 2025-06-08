@@ -5,8 +5,8 @@ import { TypeOf, z } from 'zod';
 export const matchSchema = z.object({
   tournamentId: z.number().int(),
   id: z.number().int(),
-  player1Id: z.number().int(),
-  player2Id: z.number().int(),
+  player1Id: z.number().int().nullable().optional(),
+  player2Id: z.number().int().nullable().optional(),
   player1Score: z.number().int().nullable().optional(),
   player2Score: z.number().int().nullable().optional(),
   winner: z.number().int().nullable().optional(),
@@ -47,7 +47,10 @@ export default class TournamentMatchCache {
   async createMatch(tournamentId: number, matchId: number, data: matchType): Promise<void> {
     const matchData = matchSchema.parse(data);
     await this.addMatch(tournamentId, matchData.round, matchId);
-    await this.addPlayers(tournamentId, matchId, [matchData.player1Id, matchData.player2Id]);
+
+    if (matchData.player1Id != null && matchData.player2Id != null) {
+      await this.addPlayers(tournamentId, matchId, [matchData.player1Id, matchData.player2Id]);
+    }
 
     await this.refreshTTL(tournamentId);
   }
