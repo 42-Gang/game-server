@@ -11,14 +11,21 @@ import {
 import { FastifyBaseLogger } from 'fastify';
 import TournamentPlayerCache from '../../../storage/cache/tournament/tournament.player.cache.js';
 import PlayerCache from '../../../storage/cache/player.cache.js';
+import TournamentMatchCache from '../../../storage/cache/tournament/tournament.match.cache.js';
+import TournamentMetaCache from '../../../storage/cache/tournament/tournament.meta.cache.js';
+import MatchServerCache from '../../../storage/cache/match-server.cache.js';
+import { matchRequestProducer } from '../../../kafka/producers/match.producer.js';
 
 export default class TournamentSocketHandler {
   constructor(
     private readonly tournamentCache: TournamentCache,
     private readonly tournamentPlayerCache: TournamentPlayerCache,
-    private readonly logger: FastifyBaseLogger,
+    private readonly tournamentMatchCache: TournamentMatchCache,
+    private readonly tournamentMetaCache: TournamentMetaCache,
     private readonly tournamentNamespace: Namespace,
+    private readonly matchServerCache: MatchServerCache,
     private readonly playerCache: PlayerCache,
+    private readonly logger: FastifyBaseLogger,
   ) {}
 
   async sendTournamentInfo(socket: Socket) {
@@ -75,9 +82,23 @@ export default class TournamentSocketHandler {
     this.broadcastAllUsersReady(tournamentId);
     await this.tournamentPlayerCache.movePlayersToPlaying(tournamentId);
 
-    // TODO: 각 플레이어에 배정된 matchId 조회
-    // TODO: 매치를 생성할 매치서버 조회
-    // TODO: 매치 생성 kafka 프로듀서 호출
+    const currentRound = await this.tournamentMetaCache.getCurrentRound(tournamentId);
+    const matchesInRound = await this.tournamentMatchCache.getMatchesInRound(
+      tournamentId,
+      currentRound,
+    );
+    const matchServer = await this.matchServerCache.getBestMatchServer();
+
+    for (const matchId of matchesInRound) {
+      const playerIds = await this.tournamentMatchCache.getPlayersInMatch(tournamentId, matchId);
+      await matchRequestProducer({
+        tournamentId,
+        matchId,
+        player1Id: playerIds[0],
+        player2Id: playerIds[1],
+        matchServerName: matchServer.serverName,
+      });
+    }
   }
 
   private broadcastAllUsersReady(tournamentId: number) {

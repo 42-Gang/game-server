@@ -102,6 +102,10 @@ export default class TournamentMetaCache {
     };
   }
 
+  async getCurrentRound(tournamentId: number): Promise<number> {
+    return this.getTournamentCurrentRound(tournamentId);
+  }
+
   private async refreshTTL(tournamentId: number) {
     const baseKey = this.getTournamentKey(tournamentId);
     const pattern = `${baseKey}:*`;
