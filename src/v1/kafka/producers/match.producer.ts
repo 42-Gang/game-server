@@ -1,5 +1,5 @@
 import { producer } from '../../../plugins/kafka.js';
-import { TOPICS } from '../constants.js';
+import { TOPICS, TOURNAMENT_EVENTS } from '../constants.js';
 import { matchRequestMessageSchema } from '../schemas/match.topic.schema.js';
 
 export async function matchRequestProducer(input: {
@@ -22,7 +22,10 @@ export async function matchRequestProducer(input: {
     topic: TOPICS.MATCH,
     messages: [
       {
-        value: JSON.stringify(message),
+        value: JSON.stringify({
+          eventType: TOURNAMENT_EVENTS.REQUEST,
+          ...message,
+        }),
       },
     ],
   });
