@@ -1,7 +1,61 @@
 import { Redis } from 'ioredis';
+import { TypeOf, z } from 'zod';
+
+const matchServerInfoSchema = z.object({
+  serverName: z.string(),
+  gameCount: z.number().default(0),
+});
+const matchServerInfoArraySchema = z.array(matchServerInfoSchema);
+type MatchServerInfoArrayType = TypeOf<typeof matchServerInfoArraySchema>;
 
 export default class MatchServerCache {
   constructor(private readonly redisClient: Redis) {}
 
-  // TODO: 매치서버 리스트에서 최적의 매치서버를 선택하는 로직을 구현해야 합니다.
+  private async getMatchServerKeys() {
+    return await this.redisClient.keys(`match-server:*`);
+  }
+
+  private getGameCountKey(serverId: string): string {
+    return `match-server:${serverId}:game-count`;
+  }
+
+  private async getMatchServerGameCount(serverName: string): Promise<number> {
+    const value = await this.redisClient.get(this.getGameCountKey(serverName));
+    if (value === null) {
+      return 0;
+    }
+    return Number(value);
+  }
+
+  public async getMatchServers(): Promise<MatchServerInfoArrayType> {
+    const serverKeys = await this.getMatchServerKeys();
+    if (serverKeys.length === 0) {
+      return [];
+    }
+
+    const serverNames = await this.redisClient.mget(serverKeys);
+    const serverInfos = Promise.all(
+      serverNames.map(async (serverName) => {
+        if (!serverName) {
+          throw new Error('Invalid server name retrieved from Redis');
+        }
+
+        const count = await this.getMatchServerGameCount(serverName);
+        return {
+          serverName,
+          gameCount: count,
+        };
+      }),
+    );
+    return matchServerInfoArraySchema.parse(await serverInfos);
+  }
+
+  public async getBestMatchServer() {
+    const servers = await this.getMatchServers();
+    if (servers.length === 0) {
+      throw new Error('No match servers available');
+    }
+
+    return servers.reduce((best, curr) => (best.gameCount < curr.gameCount ? best : curr));
+  }
 }
