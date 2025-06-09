@@ -220,7 +220,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
   ) {
     return this.tournamentRepository.create(
       {
-        winner: null,
+        winnerId: null,
         mode: message.mode,
         size: message.size,
       },
