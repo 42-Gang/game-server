@@ -19,6 +19,10 @@ export async function tournamentMiddleware(socket: Socket, next: NextFunction) {
     const tournamentService = diContainer.resolve<TournamentService>('tournamentService');
 
     const parsedTournamentId = parseInt(tournamentId);
+    if (isNaN(parsedTournamentId)) {
+      return next(new Error('Invalid tournament ID'));
+    }
+
     if (!(await tournamentService.isUserParticipant(parsedTournamentId, userId))) {
       return next(new Error('User is not a participant in this tournament'));
     }
