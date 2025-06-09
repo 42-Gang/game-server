@@ -9,7 +9,7 @@ import {
   customStartType,
   customStartSchema,
 } from '../schemas/custom-game.schema.js';
-import { SOCKET_EVENTS } from '../waiting.event.js';
+import { WAITING_SOCKET_EVENTS } from '../waiting.event.js';
 import CustomRoomCache from '../../../storage/cache/custom.room.cache.js';
 import SocketCache from '../../../storage/cache/socket.cache.js';
 import { FastifyBaseLogger } from 'fastify';
@@ -32,7 +32,7 @@ export default class CustomSocketHandler {
       maxPlayers: message.tournamentSize,
     });
     await socket.join(`custom:${roomId}`);
-    socket.emit(SOCKET_EVENTS.CUSTOM.CREATE, {
+    socket.emit(WAITING_SOCKET_EVENTS.CUSTOM.CREATE, {
       roomId,
     });
     this.logger.info(
@@ -59,7 +59,7 @@ export default class CustomSocketHandler {
       this.logger.error(`User ${message.userId} is not connected`);
       throw new Error('User is not connected');
     }
-    socket.to(socketId).emit(SOCKET_EVENTS.CUSTOM.INVITE, {
+    socket.to(socketId).emit(WAITING_SOCKET_EVENTS.CUSTOM.INVITE, {
       roomId: message.roomId,
       hostId: socket.data.userId,
     });
@@ -77,12 +77,12 @@ export default class CustomSocketHandler {
       userIds.map((userId) => this.userServiceClient.getUserInfo(userId)),
     );
 
-    socket.to(`custom:${message.roomId}`).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+    socket.to(`custom:${message.roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
       roomId: message.roomId,
       users,
     });
     socket.join(`custom:${message.roomId}`);
-    socket.emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+    socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
       users,
     });
   }
@@ -117,7 +117,7 @@ export default class CustomSocketHandler {
       userIds.map((userId) => this.userServiceClient.getUserInfo(userId)),
     );
     socket.leave(`custom:${roomId}`);
-    socket.to(`custom:${roomId}`).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+    socket.to(`custom:${roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
       roomId,
       users,
     });

@@ -1,15 +1,14 @@
-import { beforeEach, afterAll, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import SocketCache from '../../../../src/v1/storage/cache/socket.cache.js';
 import { redis } from '../../../../src/plugins/redis.js';
 
 describe('SocketCache (with real Redis)', () => {
   let cache: SocketCache;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await redis.flushdb();
     cache = new SocketCache(redis);
   });
-
-  afterAll(async () => {});
 
   it('setSocketId: 소켓 ID를 Redis에 저장한다', async () => {
     const key = 'socket:testns:1';

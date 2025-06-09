@@ -12,10 +12,10 @@ import MatchRepositoryInterface from '../../storage/database/interfaces/match.re
 import { FastifyBaseLogger } from 'fastify';
 import { Namespace } from 'socket.io';
 import SocketCache from '../../storage/cache/socket.cache.js';
-import { SOCKET_EVENTS } from '../../sockets/waiting/waiting.event.js';
+import { WAITING_SOCKET_EVENTS } from '../../sockets/waiting/waiting.event.js';
 import { tournamentCreatedProducer } from '../producers/tournament.producer.js';
 import UserServiceClient from '../../client/user.service.client.js';
-import TournamentCache from '../../storage/cache/tournament.cache.js';
+import TournamentCache from '../../storage/cache/tournament/tournament.cache.js';
 import { tournamentSizeSchema } from '../../sockets/waiting/schemas/tournament.schema.js';
 
 interface tournamentCreateParams {
@@ -42,7 +42,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
   ) {}
 
   async handle(messageValue: string): Promise<void> {
-    const parsedMessage = JSON.parse(messageValue);
+    const parsedMessage = this.parseMessage(messageValue);
     this.logger.info(parsedMessage, '토너먼트 메시지 수신:');
 
     if (parsedMessage.eventType === TOURNAMENT_EVENTS.REQUEST) {
@@ -106,10 +106,10 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
         if (!socketId) {
           continue;
         }
-        this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+        this.waitingNamespace.to(socketId).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
           users,
         });
-        this.waitingNamespace.to(socketId).emit(SOCKET_EVENTS.TOURNAMENT.CREATED, {
+        this.waitingNamespace.to(socketId).emit(WAITING_SOCKET_EVENTS.TOURNAMENT.CREATED, {
           tournamentId: message.tournamentId,
           size: message.size,
           mode: message.mode,
@@ -132,8 +132,9 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     await this.tournamentCache.createTournament({
       tournamentId: tournament.id,
       mode: tournament.mode,
-      size: parsedSize.data,
       playerIds: players.map((player) => player.userId),
+      size: parsedSize.data,
+      matches: await this.matchRepository.findManyByTournamentId(tournament.id),
     });
     tournamentCreatedProducer({
       mode: message.mode,
@@ -183,8 +184,8 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
       await this.matchRepository.update(
         leafNodes[i / 2].id,
         {
-          player1: players[i].userId,
-          player2: players[i + 1].userId,
+          player1Id: players[i].userId,
+          player2Id: players[i + 1].userId,
         },
         tx,
       );
@@ -219,7 +220,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
   ) {
     return this.tournamentRepository.create(
       {
-        winner: null,
+        winnerId: null,
         mode: message.mode,
         size: message.size,
       },
@@ -279,5 +280,14 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     }
 
     return match;
+  }
+
+  private parseMessage(messageValue: string) {
+    try {
+      return JSON.parse(messageValue);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to parse message: ${msg}`);
+    }
   }
 }

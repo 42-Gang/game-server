@@ -1,0 +1,28 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/api/v1/users/111"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "status": "SUCCESS",
+      "code": 200,
+      "message": "User information retrieved successfully",
+      "data": {
+        "id": 111,
+        "nickname": "jungslee",
+        "email": "jungslee@naver.com",
+        "avatarUrl": "http://localhost:3000/avatars/default.png/avatars/default.png",
+        "createdAt": "2025-05-11T09:10:23.887Z",
+        "updatedAt": "2025-05-11T09:10:23.887Z",
+        "win": 45,
+        "lose": 45,
+        "tournament": 897
+      }
+    }
+  }
+}

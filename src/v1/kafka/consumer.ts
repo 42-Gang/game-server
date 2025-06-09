@@ -1,14 +1,14 @@
 import { kafka } from '../../plugins/kafka.js';
 import { KafkaTopicConsumer } from './consumers/kafka.topic.consumer.js';
-import TournamentTopicConsumer from './consumers/tournament.topic.consumer.js';
 import { FastifyBaseLogger } from 'fastify';
 
 export async function startConsumer(
-  tournamentTopicConsumer: TournamentTopicConsumer,
+  tournamentTopicConsumer: KafkaTopicConsumer,
+  matchTopicConsumer: KafkaTopicConsumer,
   logger: FastifyBaseLogger,
 ) {
   const mainConsumer = kafka.consumer({ groupId: 'MAIN_GAME_SERVER', sessionTimeout: 10000 });
-  const topicConsumers: KafkaTopicConsumer[] = [tournamentTopicConsumer];
+  const topicConsumers: KafkaTopicConsumer[] = [tournamentTopicConsumer, matchTopicConsumer];
 
   await mainConsumer.connect();
 

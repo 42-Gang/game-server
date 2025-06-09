@@ -8,4 +8,6 @@ export default interface MatchRepositoryInterface
     round: number,
     tx?: Prisma.TransactionClient,
   ): Promise<Match[]>;
+
+  findManyByTournamentId(tournamentId: number, tx?: Prisma.TransactionClient): Promise<Match[]>;
 }

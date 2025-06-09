@@ -41,4 +41,18 @@ export default class MatchRepository implements MatchRepositoryInterface {
       },
     });
   }
+
+  async findManyByTournamentId(
+    tournamentId: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Match[]> {
+    const client = tx || this.prisma;
+    return client.match.findMany({
+      where: {
+        tournament: {
+          id: tournamentId,
+        },
+      },
+    });
+  }
 }

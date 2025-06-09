@@ -18,6 +18,7 @@ describe('CustomRoomCache', () => {
       level: vi.fn(() => loggerMock),
       silent: vi.fn(() => loggerMock),
     } as unknown as FastifyBaseLogger;
+    await redis.flushdb();
     cache = new CustomRoomCache(redis, loggerMock);
   });
 

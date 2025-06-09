@@ -4,14 +4,14 @@ import { socketErrorHandler } from '../utils/errorHandler.js';
 import { autoJoinSchemaType } from './schemas/auto-game.schema.js';
 import WaitingSocketHandler from './handlers/waiting.socket.handler.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
-import { SOCKET_EVENTS } from './waiting.event.js';
+import { WAITING_SOCKET_EVENTS } from './waiting.event.js';
 import { FastifyBaseLogger } from 'fastify';
 import AutoSocketHandler from './handlers/auto.socket.handler.js';
 import CustomSocketHandler from './handlers/custom.socket.handler.js';
 
 function registerAutoEvents(socket: Socket, handler: AutoSocketHandler, logger: FastifyBaseLogger) {
   socket.on(
-    SOCKET_EVENTS.AUTO.JOIN,
+    WAITING_SOCKET_EVENTS.AUTO.JOIN,
     socketErrorHandler(socket, logger, (payload: autoJoinSchemaType) =>
       handler.joinAutoRoom(socket, payload),
     ),
@@ -24,23 +24,23 @@ function registerCustomEvents(
   logger: FastifyBaseLogger,
 ) {
   socket.on(
-    SOCKET_EVENTS.CUSTOM.CREATE,
+    WAITING_SOCKET_EVENTS.CUSTOM.CREATE,
     socketErrorHandler(socket, logger, (payload) => handler.createCustomRoom(socket, payload)),
   );
   socket.on(
-    SOCKET_EVENTS.CUSTOM.INVITE,
+    WAITING_SOCKET_EVENTS.CUSTOM.INVITE,
     socketErrorHandler(socket, logger, (payload) => handler.inviteCustomRoom(socket, payload)),
   );
   socket.on(
-    SOCKET_EVENTS.CUSTOM.ACCEPT,
+    WAITING_SOCKET_EVENTS.CUSTOM.ACCEPT,
     socketErrorHandler(socket, logger, (payload) => handler.acceptCustomRoom(socket, payload)),
   );
   socket.on(
-    SOCKET_EVENTS.CUSTOM.START,
+    WAITING_SOCKET_EVENTS.CUSTOM.START,
     socketErrorHandler(socket, logger, (payload) => handler.startCustomRoom(socket, payload)),
   );
   socket.on(
-    SOCKET_EVENTS.CUSTOM.LEAVE,
+    WAITING_SOCKET_EVENTS.CUSTOM.LEAVE,
     socketErrorHandler(socket, logger, () => handler.leaveCustomRoom(socket)),
   );
 }

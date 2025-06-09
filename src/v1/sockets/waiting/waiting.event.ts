@@ -1,4 +1,4 @@
-export const SOCKET_EVENTS = {
+export const WAITING_SOCKET_EVENTS = {
   AUTO: {
     JOIN: 'auto-join',
   },

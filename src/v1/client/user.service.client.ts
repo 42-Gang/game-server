@@ -1,5 +1,14 @@
 import { GotClient } from '../../plugins/http.client.js';
 import { HttpException } from '../common/exceptions/core.error.js';
+import { TypeOf, z } from 'zod';
+
+export const userInfoSchema = z.object({
+  id: z.number(),
+  nickname: z.string(),
+  avatarUrl: z.string().url(),
+});
+
+export type userInfoType = TypeOf<typeof userInfoSchema>;
 
 export default class UserServiceClient {
   constructor(
@@ -7,7 +16,7 @@ export default class UserServiceClient {
     private readonly userServerUrl: string,
   ) {}
 
-  async getUserInfo(userId: number) {
+  async getUserInfo(userId: number): Promise<userInfoType> {
     const response = await this.httpClient.requestJson<{
       data: {
         id: number;
