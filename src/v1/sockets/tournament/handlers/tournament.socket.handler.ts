@@ -67,8 +67,8 @@ export default class TournamentSocketHandler {
   }
 
   async handleReady(socket: Socket) {
-    const userId = socket.data.userId;
-    const tournamentId = socket.data.tournamentId;
+    const userId = parseInt(socket.data.userId);
+    const tournamentId = parseInt(socket.data.tournamentId);
 
     this.logger.info(`User ${userId} is ready for tournament ${tournamentId}`);
     await this.tournamentPlayerCache.setPlayerReady(tournamentId, userId);
