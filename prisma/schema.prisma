@@ -20,7 +20,7 @@ enum Status {
 
 model Tournament {
   id        Int      @id @default(autoincrement())
-  winner    Int?
+  winnerId  Int?     @map("winner_id")
   mode      GameMode
   size      Int
   status    Status   @default(NOT_STARTED)
