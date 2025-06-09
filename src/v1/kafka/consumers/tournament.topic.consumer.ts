@@ -42,7 +42,7 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
   ) {}
 
   async handle(messageValue: string): Promise<void> {
-    const parsedMessage = JSON.parse(messageValue);
+    const parsedMessage = this.parseMessage(messageValue);
     this.logger.info(parsedMessage, '토너먼트 메시지 수신:');
 
     if (parsedMessage.eventType === TOURNAMENT_EVENTS.REQUEST) {
@@ -280,5 +280,14 @@ export default class TournamentTopicConsumer implements KafkaTopicConsumer {
     }
 
     return match;
+  }
+
+  private parseMessage(messageValue: string) {
+    try {
+      return JSON.parse(messageValue);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to parse message: ${msg}`);
+    }
   }
 }
