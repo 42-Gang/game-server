@@ -38,7 +38,7 @@ export function startTournamentNamespace(namespace: Namespace) {
     socket.on('disconnect', () => {
       logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
       socketCache.deleteSocketId({
-        namespace: 'waiting',
+        namespace: 'tournament',
         userId: userId,
       });
     });
