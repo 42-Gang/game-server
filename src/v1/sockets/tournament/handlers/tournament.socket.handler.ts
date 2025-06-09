@@ -91,6 +91,14 @@ export default class TournamentSocketHandler {
 
     for (const matchId of matchesInRound) {
       const playerIds = await this.tournamentMatchCache.getPlayersInMatch(tournamentId, matchId);
+      if (playerIds.length !== 2) {
+        this.logger.warn(
+          `Match ${matchId} in tournament ${tournamentId} does not have exactly 2 players.`,
+        );
+        throw new Error(
+          `Match ${matchId} in tournament ${tournamentId} does not have exactly 2 players.`,
+        );
+      }
       await matchRequestProducer({
         tournamentId,
         matchId,
