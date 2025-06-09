@@ -23,7 +23,7 @@ model Tournament {
   winner    Int?
   mode      GameMode
   size      Int
-  status    Status   @default(INPROGRESS)
+  status    Status   @default(NOT_STARTED)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
