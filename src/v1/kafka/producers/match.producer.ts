@@ -3,7 +3,7 @@ import { TOPICS, TOURNAMENT_EVENTS } from '../constants.js';
 import { matchRequestMessageSchema } from '../schemas/match.topic.schema.js';
 
 export async function matchRequestProducer(input: {
-  tournamentId: string;
+  tournamentId: number;
   matchId: number;
   matchServerName: string;
   player1Id: number;
