@@ -49,8 +49,6 @@ export function startWaitingNamespace(namespace: Namespace) {
   namespace.use(socketMiddleware);
 
   namespace.on('connection', async (socket: Socket) => {
-    const waitingSocketHandler: WaitingSocketHandler =
-      namespace.server.diContainer.resolve('waitingSocketHandler');
     const autoSocketHandler: AutoSocketHandler =
       namespace.server.diContainer.resolve('autoSocketHandler');
     const customSocketHandler: CustomSocketHandler =
