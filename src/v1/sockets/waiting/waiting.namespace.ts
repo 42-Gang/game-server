@@ -2,7 +2,6 @@ import { Namespace, Socket } from 'socket.io';
 import { socketMiddleware } from '../utils/middleware.js';
 import { socketErrorHandler } from '../utils/errorHandler.js';
 import { autoJoinSchemaType } from './schemas/auto-game.schema.js';
-import WaitingSocketHandler from './handlers/waiting.socket.handler.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { WAITING_SOCKET_EVENTS } from './waiting.event.js';
 import { FastifyBaseLogger } from 'fastify';
@@ -70,7 +69,6 @@ export function startWaitingNamespace(namespace: Namespace) {
 
     socket.on('disconnect', () => {
       logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
-      // waitingSocketHandler.leaveRoom(socket);
       socketCache.deleteSocketId({
         namespace: 'waiting',
         userId: userId,
