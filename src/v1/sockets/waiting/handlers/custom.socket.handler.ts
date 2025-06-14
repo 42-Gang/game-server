@@ -12,6 +12,7 @@ import {
   inviteMessageSchema,
   roomUpdateUserSchema,
   RoomUpdateUserType,
+  roomUpdateSchema,
 } from '../schemas/custom-game.schema.js';
 import { WAITING_SOCKET_EVENTS } from '../waiting.event.js';
 import CustomRoomCache from '../../../storage/cache/custom.room.cache.js';
@@ -101,11 +102,10 @@ export default class CustomSocketHandler {
       }),
     );
 
-    const response = roomUpdateUserSchema.parse({
+    const response = roomUpdateSchema.parse({
       roomId: message.roomId,
       users,
     });
-
     socket.to(`custom:${message.roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
     socket.join(`custom:${message.roomId}`);
 
@@ -153,7 +153,7 @@ export default class CustomSocketHandler {
     );
     socket.leave(`custom:${roomId}`);
 
-    const message = roomUpdateUserSchema.parse({
+    const message = roomUpdateSchema.parse({
       roomId,
       users,
     });
@@ -180,7 +180,7 @@ export default class CustomSocketHandler {
       }),
     );
 
-    const message = roomUpdateUserSchema.parse({
+    const message = roomUpdateSchema.parse({
       roomId,
       users,
     });
