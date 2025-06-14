@@ -10,7 +10,6 @@ import {
   customStartSchema,
   InviteMessageType,
   inviteMessageSchema,
-  roomUpdateUserSchema,
   RoomUpdateUserType,
   roomUpdateSchema,
 } from '../schemas/custom-game.schema.js';
