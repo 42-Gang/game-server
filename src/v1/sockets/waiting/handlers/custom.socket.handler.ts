@@ -8,6 +8,8 @@ import {
   customAcceptType,
   customStartType,
   customStartSchema,
+  InviteMessageType,
+  inviteMessageSchema,
 } from '../schemas/custom-game.schema.js';
 import { WAITING_SOCKET_EVENTS } from '../waiting.event.js';
 import CustomRoomCache from '../../../storage/cache/custom.room.cache.js';
@@ -59,10 +61,17 @@ export default class CustomSocketHandler {
       this.logger.error(`User ${message.userId} is not connected`);
       throw new Error('User is not connected');
     }
-    socket.to(socketId).emit(WAITING_SOCKET_EVENTS.CUSTOM.INVITE, {
+
+    const hostId = await this.customRoomCache.getHostId(message.roomId);
+    const hostUser = await this.userServiceClient.getUserInfo(hostId);
+    const response: InviteMessageType = {
       roomId: message.roomId,
-      hostId: socket.data.userId,
-    });
+      hostId: hostUser.id,
+      hostName: hostUser.nickname,
+      hostAvatarUrl: hostUser.avatarUrl,
+    };
+    inviteMessageSchema.parse(response);
+    socket.to(socketId).emit(WAITING_SOCKET_EVENTS.CUSTOM.INVITE, response);
     this.logger.info(
       `${message.userId} user invited from ${message.roomId} custom room by ${socket.data.userId}`,
     );

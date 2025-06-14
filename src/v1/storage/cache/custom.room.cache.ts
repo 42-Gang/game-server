@@ -220,6 +220,16 @@ export default class CustomRoomCache {
     return exists === 1;
   }
 
+  async getHostId(roomId: string): Promise<number> {
+    const roomKey = this.getRoomKey(roomId);
+    const hostId = await this.redisClient.hget(roomKey, 'hostId');
+    if (!hostId) {
+      this.logger.error(`Host ID not found for room ${roomId}`);
+      throw new Error('Host ID not found');
+    }
+    return Number(hostId);
+  }
+
   private async getNextHostIdFromOrderedUsers(roomId: string) {
     return await this.redisClient.lindex(this.getOrderedUsersKey(roomId), 0);
   }
