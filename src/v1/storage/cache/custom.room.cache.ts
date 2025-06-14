@@ -177,6 +177,7 @@ export default class CustomRoomCache {
         // 더 남은 유저가 없으면 방 삭제
         this.logger.info(`No users left in room ${roomId}, deleting room`);
         await this.deleteRoom(roomId);
+        await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
         return;
       }
 
