@@ -37,6 +37,8 @@ export default class CustomSocketHandler {
     socket.emit(WAITING_SOCKET_EVENTS.CUSTOM.CREATE, {
       roomId,
     });
+
+    await this.broadcastRoomUpdate(roomId, socket);
     this.logger.info(
       `User ${socket.data.userId} created custom room with size ${message.tournamentSize}`,
     );
@@ -134,5 +136,20 @@ export default class CustomSocketHandler {
 
   async leaveCustomRoom(socket: Socket) {
     await this.leaveRoom(socket);
+  }
+
+  private async broadcastRoomUpdate(roomId: string, socket: Socket) {
+    const userIds = await this.customRoomCache.getUsersInRoom(roomId);
+    const users = await Promise.all(
+      userIds.map((userId) => this.userServiceClient.getUserInfo(userId)),
+    );
+
+    socket.to(`custom:${roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+      roomId,
+      users,
+    });
+    socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+      users,
+    });
   }
 }
