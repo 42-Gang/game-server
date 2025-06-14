@@ -59,6 +59,6 @@ export type RoomUpdateUserType = TypeOf<typeof roomUpdateUserSchema>;
 
 export const roomUpdateSchema = z.object({
   roomId: z.string(),
-  user: z.array(roomUpdateUserSchema),
+  users: z.array(roomUpdateUserSchema),
 });
 export type RoomUpdateType = TypeOf<typeof roomUpdateSchema>;

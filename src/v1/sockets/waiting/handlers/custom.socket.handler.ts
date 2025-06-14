@@ -134,8 +134,13 @@ export default class CustomSocketHandler {
       this.logger.error(`User ${socket.data.userId} is not in any custom room`);
       return;
     }
-
     await this.customRoomCache.removeUserFromRoom(roomId, socket.data.userId);
+    socket.leave(`custom:${roomId}`);
+
+    if (!(await this.customRoomCache.isRoomExists(roomId))) {
+      return;
+    }
+
     const userIds = await this.customRoomCache.getUsersInRoom(roomId);
     const hostId = await this.customRoomCache.getHostId(roomId);
     const users: RoomUpdateUserType[] = await Promise.all(
@@ -150,7 +155,6 @@ export default class CustomSocketHandler {
         };
       }),
     );
-    socket.leave(`custom:${roomId}`);
 
     const message = roomUpdateSchema.parse({
       roomId,
