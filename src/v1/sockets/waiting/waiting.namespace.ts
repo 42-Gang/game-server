@@ -72,7 +72,7 @@ export function startWaitingNamespace(namespace: Namespace) {
 
     socket.on('disconnect', () => {
       logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
-      waitingSocketHandler.leaveRoom(socket);
+      // waitingSocketHandler.leaveRoom(socket);
       socketCache.deleteSocketId({
         namespace: 'waiting',
         userId: userId,

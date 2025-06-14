@@ -17,4 +17,6 @@ export default class WaitingSocketHandler {
     }
     this.customRoomCache.disconnectedUser(socket.data.userId);
   }
+
+  // TODO: 여기가 문제임.
 }

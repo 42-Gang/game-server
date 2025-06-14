@@ -85,7 +85,6 @@ export default class CustomRoomCache {
         return "ROOM_FULL"      -- 남은 자리가 없으면 에러 리턴
       end
     
-      -- 자리 있으면 추가
       redis.call('SADD', KEYS[1], ARGV[2])
       redis.call('RPUSH', KEYS[2], ARGV[2])
       return {ok="OK"}                 -- 성공 리턴
@@ -162,25 +161,48 @@ export default class CustomRoomCache {
   }
 
   async removeUserFromRoom(roomId: string, userId: number): Promise<void> {
-    await this.popFromOrderedUsers(roomId);
-    await this.removeUser(roomId, userId);
+    this.logger.info('removeUserFromRoom');
 
-    const invitedKey = this.getInvitedKey(roomId);
-    await this.redisClient.srem(invitedKey, String(userId));
+    const orderedKey = this.getOrderedUsersKey(roomId);
 
-    await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
-    this.logger.info(`User ${userId} left room ${roomId}`);
+    // 1) 누가 나가는지 확인
+    const currentHost = await this.getHostId(roomId);
+    if (currentHost === userId) {
+      // 1) 호스트 자신을 리스트에서 제거
+      await this.redisClient.lpop(orderedKey);
 
-    const userCount = await this.getNumberOfUsersInRoom(roomId);
-    const room = await this.getRoomInfo(roomId);
-    if (userCount < room.maxPlayers) {
-      await this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl);
-      this.logger.info(`Room ${roomId} is now WAITING`);
+      // 2) 새 헤드를 확인
+      const newHostId = await this.redisClient.lindex(orderedKey, 0);
+      if (!newHostId) {
+        // 더 남은 유저가 없으면 방 삭제
+        this.logger.info(`No users left in room ${roomId}, deleting room`);
+        await this.deleteRoom(roomId);
+        return;
+      }
+
+      // 3) 실제 호스트 교체
+      await this.changeRoomHost(roomId, Number(newHostId));
+      this.logger.info(`Room ${roomId} host changed to ${newHostId}`);
+    } else {
+      // ── 일반 유저는 LREM으로 하나만 제거 ──
+      await this.redisClient.lrem(orderedKey, 0, String(userId));
     }
 
+    // 2) Set에서만 제거
+    await this.removeUser(roomId, userId);
+
+    // 3) invited, CUSTOM_USERS 정리
+    await this.redisClient.srem(this.getInvitedKey(roomId), String(userId));
+    await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
+
+    // 4) 방 상태·삭제 판단
+    const userCount = await this.getNumberOfUsersInRoom(roomId);
     if (userCount === 0) {
       await this.deleteRoom(roomId);
       this.logger.info(`Room ${roomId} deleted due to inactivity`);
+    } else if (userCount < (await this.getRoomInfo(roomId)).maxPlayers) {
+      await this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl);
+      this.logger.info(`Room ${roomId} is now WAITING`);
     }
   }
 
@@ -198,6 +220,7 @@ export default class CustomRoomCache {
   }
 
   async disconnectedUser(userId: number): Promise<void> {
+    this.logger.info('disconnectedUser');
     const roomId = await this.getRoomIdByUserId(userId);
     if (!roomId) {
       return;
@@ -232,10 +255,6 @@ export default class CustomRoomCache {
 
   private async getNextHostIdFromOrderedUsers(roomId: string) {
     return await this.redisClient.lindex(this.getOrderedUsersKey(roomId), 0);
-  }
-
-  private async popFromOrderedUsers(roomId: string) {
-    await this.redisClient.lpop(this.getOrderedUsersKey(roomId));
   }
 
   async changeRoomHost(roomId: string, newHostId: number): Promise<void> {
