@@ -82,6 +82,7 @@ export default class CustomSocketHandler {
   }
 
   async acceptCustomRoom(socket: Socket, payload: customAcceptType) {
+    this.logger.info(`User ${socket.data.userId} is accepting custom room ${payload.roomId}`);
     const message = customAcceptSchema.parse(payload);
 
     await this.customRoomCache.addUserToRoom(message.roomId, socket.data.userId);
