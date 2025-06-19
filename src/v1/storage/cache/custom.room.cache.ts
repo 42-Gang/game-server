@@ -45,19 +45,17 @@ export default class CustomRoomCache {
       throw new Error('Room already exists');
     }
 
-    const tx = this.redisClient.multi();
-
-    await Promise.all([
-      tx.hset(key, 'hostId', room.hostId, 'maxPlayers', room.maxPlayers),
-      tx.expire(key, this.ttl),
-      tx.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl),
-      tx.sadd(this.getUsersKey(roomId), room.hostId),
-      tx.expire(this.getUsersKey(roomId), this.ttl),
-      tx.rpush(this.getOrderedUsersKey(roomId), String(room.hostId)),
-      tx.expire(this.getOrderedUsersKey(roomId), this.ttl),
-      tx.hset(this.CUSTOM_USERS, room.hostId, roomId),
-      tx.expire(this.CUSTOM_USERS, this.ttl),
-    ]);
+    const tx = this.redisClient
+      .multi()
+      .hset(key, 'hostId', room.hostId, 'maxPlayers', room.maxPlayers)
+      .expire(key, this.ttl)
+      .set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl)
+      .sadd(this.getUsersKey(roomId), room.hostId)
+      .expire(this.getUsersKey(roomId), this.ttl)
+      .rpush(this.getOrderedUsersKey(roomId), String(room.hostId))
+      .expire(this.getOrderedUsersKey(roomId), this.ttl)
+      .hset(this.CUSTOM_USERS, room.hostId, roomId)
+      .expire(this.CUSTOM_USERS, this.ttl);
 
     await tx.exec();
 
@@ -160,51 +158,92 @@ export default class CustomRoomCache {
     this.logger.info(`User ${userId} invited to room ${roomId}`);
   }
 
-  async removeUserFromRoom(roomId: string, userId: number): Promise<void> {
-    this.logger.info('removeUserFromRoom');
-
-    const orderedKey = this.getOrderedUsersKey(roomId);
-
-    // 1) 누가 나가는지 확인
+  private async isUserHost(roomId: string, userId: number) {
     const currentHost = await this.getHostId(roomId);
-    if (currentHost === userId) {
-      // 1) 호스트 자신을 리스트에서 제거
-      await this.redisClient.lpop(orderedKey);
+    return currentHost === userId;
+  }
 
-      // 2) 새 헤드를 확인
-      const newHostId = await this.redisClient.lindex(orderedKey, 0);
-      if (!newHostId) {
-        // 더 남은 유저가 없으면 방 삭제
-        this.logger.info(`No users left in room ${roomId}, deleting room`);
-        await this.deleteRoom(roomId);
-        await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
-        return;
-      }
+  async popOrderedUser(roomId: string): Promise<number> {
+    const orderedKey = this.getOrderedUsersKey(roomId);
+    const userId = await this.redisClient.lpop(orderedKey);
+    if (!userId) {
+      throw new Error(`No users in ordered list for room ${roomId}`);
+    }
+    return Number(userId);
+  }
 
-      // 3) 실제 호스트 교체
-      await this.changeRoomHost(roomId, Number(newHostId));
-      this.logger.info(`Room ${roomId} host changed to ${newHostId}`);
-    } else {
-      // ── 일반 유저는 LREM으로 하나만 제거 ──
-      await this.redisClient.lrem(orderedKey, 0, String(userId));
+  async getOrderedUsers(roomId: string, index: number): Promise<number | null> {
+    const orderedKey = this.getOrderedUsersKey(roomId);
+    const userId = await this.redisClient.lindex(orderedKey, index);
+    return userId ? Number(userId) : null;
+  }
+
+  private async handleHostRemoval(roomId: string, userId: number) {
+    await this.popOrderedUser(roomId);
+
+    const newHostId = await this.getOrderedUsers(roomId, 0);
+    if (!newHostId) {
+      this.logger.info(`No users left in room ${roomId}, deleting room`);
+      await this.finalizeEmptyRoom(roomId, userId);
+      return;
     }
 
-    // 2) Set에서만 제거
-    await this.removeUser(roomId, userId);
+    await this.changeRoomHost(roomId, Number(newHostId));
+    this.logger.info(`Room ${roomId} host changed to ${newHostId}`);
+    await this.performCommonCleanup(roomId, userId);
+    await this.updateRoomStatus(roomId);
+  }
 
-    // 3) invited, CUSTOM_USERS 정리
+  private async removeUserFromOrderedList(roomId: string, userId: number) {
+    const orderedKey = this.getOrderedUsersKey(roomId);
+    const removedCount = await this.redisClient.lrem(orderedKey, 0, String(userId));
+    if (removedCount === 0) {
+      this.logger.warn(`User ${userId} not found in ordered list for room ${roomId}`);
+    }
+    return removedCount;
+  }
+
+  private async handleRegularUserRemoval(roomId: string, userId: number) {
+    await this.removeUserFromOrderedList(roomId, userId);
+    await this.performCommonCleanup(roomId, userId);
+    await this.updateRoomStatus(roomId);
+  }
+
+  private async performCommonCleanup(roomId: string, userId: number) {
+    await this.removeUser(roomId, userId);
     await this.redisClient.srem(this.getInvitedKey(roomId), String(userId));
     await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
+  }
 
-    // 4) 방 상태·삭제 판단
+  private async finalizeEmptyRoom(roomId: string, userId: number) {
+    await this.deleteRoom(roomId);
+    await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
+  }
+
+  private async updateRoomStatus(roomId: string) {
     const userCount = await this.getNumberOfUsersInRoom(roomId);
     if (userCount === 0) {
-      await this.deleteRoom(roomId);
       this.logger.info(`Room ${roomId} deleted due to inactivity`);
-    } else if (userCount < (await this.getRoomInfo(roomId)).maxPlayers) {
+      await this.deleteRoom(roomId);
+      return;
+    }
+
+    const { maxPlayers } = await this.getRoomInfo(roomId);
+    if (userCount < maxPlayers) {
       await this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl);
       this.logger.info(`Room ${roomId} is now WAITING`);
     }
+  }
+
+  async removeUserFromRoom(roomId: string, userId: number): Promise<void> {
+    this.logger.info('removeUserFromRoom', { roomId, userId });
+
+    if (await this.isUserHost(roomId, userId)) {
+      await this.handleHostRemoval(roomId, userId);
+      return;
+    }
+
+    await this.handleRegularUserRemoval(roomId, userId);
   }
 
   private async removeUser(roomId: string, userId: number) {
