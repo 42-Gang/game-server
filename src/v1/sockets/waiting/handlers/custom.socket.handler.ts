@@ -8,6 +8,10 @@ import {
   customAcceptType,
   customStartType,
   customStartSchema,
+  InviteMessageType,
+  inviteMessageSchema,
+  RoomUpdateUserType,
+  roomUpdateSchema,
 } from '../schemas/custom-game.schema.js';
 import { WAITING_SOCKET_EVENTS } from '../waiting.event.js';
 import CustomRoomCache from '../../../storage/cache/custom.room.cache.js';
@@ -35,6 +39,8 @@ export default class CustomSocketHandler {
     socket.emit(WAITING_SOCKET_EVENTS.CUSTOM.CREATE, {
       roomId,
     });
+
+    await this.broadcastRoomUpdate(roomId, socket);
     this.logger.info(
       `User ${socket.data.userId} created custom room with size ${message.tournamentSize}`,
     );
@@ -59,32 +65,55 @@ export default class CustomSocketHandler {
       this.logger.error(`User ${message.userId} is not connected`);
       throw new Error('User is not connected');
     }
-    socket.to(socketId).emit(WAITING_SOCKET_EVENTS.CUSTOM.INVITE, {
+
+    const hostId = await this.customRoomCache.getHostId(message.roomId);
+    const hostUser = await this.userServiceClient.getUserInfo(hostId);
+    const response: InviteMessageType = {
       roomId: message.roomId,
-      hostId: socket.data.userId,
-    });
+      hostId: hostUser.id,
+      hostName: hostUser.nickname,
+      hostAvatarUrl: hostUser.avatarUrl,
+    };
+    inviteMessageSchema.parse(response);
+    socket.to(socketId).emit(WAITING_SOCKET_EVENTS.CUSTOM.INVITE, response);
     this.logger.info(
       `${message.userId} user invited from ${message.roomId} custom room by ${socket.data.userId}`,
     );
   }
 
   async acceptCustomRoom(socket: Socket, payload: customAcceptType) {
+    this.logger.info(`User ${socket.data.userId} is accepting custom room ${payload.roomId}`);
     const message = customAcceptSchema.parse(payload);
 
     await this.customRoomCache.addUserToRoom(message.roomId, socket.data.userId);
-    const userIds = await this.customRoomCache.getUsersInRoom(message.roomId);
-    const users = await Promise.all(
-      userIds.map((userId) => this.userServiceClient.getUserInfo(userId)),
-    );
 
-    socket.to(`custom:${message.roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+    const userIds = await this.customRoomCache.getUsersInRoom(message.roomId);
+    const hostId = await this.customRoomCache.getHostId(message.roomId);
+    const users = await this.createRoomUserDetails(userIds, hostId);
+
+    const response = roomUpdateSchema.parse({
       roomId: message.roomId,
       users,
     });
+    socket.to(`custom:${message.roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
     socket.join(`custom:${message.roomId}`);
-    socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
-      users,
-    });
+
+    socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
+  }
+
+  private async createRoomUserDetails(userIds: number[], hostId: number) {
+    return Promise.all(
+      userIds.map(async (userId) => {
+        const user = await this.userServiceClient.getUserInfo(userId);
+
+        return {
+          id: user.id,
+          nickname: user.nickname,
+          avatarUrl: user.avatarUrl,
+          isHost: user.id === hostId,
+        };
+      }),
+    );
   }
 
   async startCustomRoom(socket: Socket, payload: customStartType) {
@@ -110,20 +139,37 @@ export default class CustomSocketHandler {
       this.logger.error(`User ${socket.data.userId} is not in any custom room`);
       return;
     }
-
     await this.customRoomCache.removeUserFromRoom(roomId, socket.data.userId);
-    const userIds = await this.customRoomCache.getUsersInRoom(roomId);
-    const users = await Promise.all(
-      userIds.map((userId) => this.userServiceClient.getUserInfo(userId)),
-    );
     socket.leave(`custom:${roomId}`);
-    socket.to(`custom:${roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, {
+
+    if (!(await this.customRoomCache.isRoomExists(roomId))) {
+      return;
+    }
+
+    const userIds = await this.customRoomCache.getUsersInRoom(roomId);
+    const hostId = await this.customRoomCache.getHostId(roomId);
+    const users: RoomUpdateUserType[] = await this.createRoomUserDetails(userIds, hostId);
+
+    const message = roomUpdateSchema.parse({
       roomId,
       users,
     });
+    socket.to(`custom:${roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, message);
   }
 
   async leaveCustomRoom(socket: Socket) {
     await this.leaveRoom(socket);
+  }
+
+  private async broadcastRoomUpdate(roomId: string, socket: Socket) {
+    const userIds = await this.customRoomCache.getUsersInRoom(roomId);
+    const hostId = await this.customRoomCache.getHostId(roomId);
+    const users: RoomUpdateUserType[] = await this.createRoomUserDetails(userIds, hostId);
+
+    const message = roomUpdateSchema.parse({
+      roomId,
+      users,
+    });
+    socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, message);
   }
 }

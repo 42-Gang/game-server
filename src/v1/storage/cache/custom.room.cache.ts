@@ -45,19 +45,17 @@ export default class CustomRoomCache {
       throw new Error('Room already exists');
     }
 
-    const tx = this.redisClient.multi();
-
-    await Promise.all([
-      tx.hset(key, 'hostId', room.hostId, 'maxPlayers', room.maxPlayers),
-      tx.expire(key, this.ttl),
-      tx.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl),
-      tx.sadd(this.getUsersKey(roomId), room.hostId),
-      tx.expire(this.getUsersKey(roomId), this.ttl),
-      tx.rpush(this.getOrderedUsersKey(roomId), String(room.hostId)),
-      tx.expire(this.getOrderedUsersKey(roomId), this.ttl),
-      tx.hset(this.CUSTOM_USERS, room.hostId, roomId),
-      tx.expire(this.CUSTOM_USERS, this.ttl),
-    ]);
+    const tx = this.redisClient
+      .multi()
+      .hset(key, 'hostId', room.hostId, 'maxPlayers', room.maxPlayers)
+      .expire(key, this.ttl)
+      .set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl)
+      .sadd(this.getUsersKey(roomId), room.hostId)
+      .expire(this.getUsersKey(roomId), this.ttl)
+      .rpush(this.getOrderedUsersKey(roomId), String(room.hostId))
+      .expire(this.getOrderedUsersKey(roomId), this.ttl)
+      .hset(this.CUSTOM_USERS, room.hostId, roomId)
+      .expire(this.CUSTOM_USERS, this.ttl);
 
     await tx.exec();
 
@@ -85,7 +83,6 @@ export default class CustomRoomCache {
         return "ROOM_FULL"      -- 남은 자리가 없으면 에러 리턴
       end
     
-      -- 자리 있으면 추가
       redis.call('SADD', KEYS[1], ARGV[2])
       redis.call('RPUSH', KEYS[2], ARGV[2])
       return {ok="OK"}                 -- 성공 리턴
@@ -161,27 +158,92 @@ export default class CustomRoomCache {
     this.logger.info(`User ${userId} invited to room ${roomId}`);
   }
 
-  async removeUserFromRoom(roomId: string, userId: number): Promise<void> {
-    await this.popFromOrderedUsers(roomId);
+  private async isUserHost(roomId: string, userId: number) {
+    const currentHost = await this.getHostId(roomId);
+    return currentHost === userId;
+  }
+
+  async popNextOrderedUser(roomId: string): Promise<number> {
+    const orderedKey = this.getOrderedUsersKey(roomId);
+    const userId = await this.redisClient.lpop(orderedKey);
+    if (!userId) {
+      throw new Error(`No users in ordered list for room ${roomId}`);
+    }
+    return Number(userId);
+  }
+
+  async getOrderedUserAt(roomId: string, index: number): Promise<number | null> {
+    const orderedKey = this.getOrderedUsersKey(roomId);
+    const userId = await this.redisClient.lindex(orderedKey, index);
+    return userId ? Number(userId) : null;
+  }
+
+  private async handleHostRemoval(roomId: string, userId: number) {
+    await this.popNextOrderedUser(roomId);
+
+    const newHostId = await this.getOrderedUserAt(roomId, 0);
+    if (!newHostId) {
+      this.logger.info(`No users left in room ${roomId}, deleting room`);
+      await this.cleanupEmptyRoom(roomId, userId);
+      return;
+    }
+
+    await this.changeRoomHost(roomId, Number(newHostId));
+    this.logger.info(`Room ${roomId} host changed to ${newHostId}`);
+    await this.cleanupUserEntries(roomId, userId);
+    await this.refreshRoomStatus(roomId);
+  }
+
+  private async removeFromOrderedList(roomId: string, userId: number) {
+    const orderedKey = this.getOrderedUsersKey(roomId);
+    const removedCount = await this.redisClient.lrem(orderedKey, 0, String(userId));
+    if (removedCount === 0) {
+      this.logger.warn(`User ${userId} not found in ordered list for room ${roomId}`);
+    }
+    return removedCount;
+  }
+
+  private async handleRegularUserRemoval(roomId: string, userId: number) {
+    await this.removeFromOrderedList(roomId, userId);
+    await this.cleanupUserEntries(roomId, userId);
+    await this.refreshRoomStatus(roomId);
+  }
+
+  private async cleanupUserEntries(roomId: string, userId: number) {
     await this.removeUser(roomId, userId);
-
-    const invitedKey = this.getInvitedKey(roomId);
-    await this.redisClient.srem(invitedKey, String(userId));
-
+    await this.redisClient.srem(this.getInvitedKey(roomId), String(userId));
     await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
-    this.logger.info(`User ${userId} left room ${roomId}`);
+  }
 
+  private async cleanupEmptyRoom(roomId: string, userId: number) {
+    await this.deleteRoom(roomId);
+    await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
+  }
+
+  private async refreshRoomStatus(roomId: string) {
     const userCount = await this.getNumberOfUsersInRoom(roomId);
-    const room = await this.getRoomInfo(roomId);
-    if (userCount < room.maxPlayers) {
+    if (userCount === 0) {
+      this.logger.info(`Room ${roomId} deleted due to inactivity`);
+      await this.deleteRoom(roomId);
+      return;
+    }
+
+    const { maxPlayers } = await this.getRoomInfo(roomId);
+    if (userCount < maxPlayers) {
       await this.redisClient.set(this.getStatusKey(roomId), 'WAITING', 'EX', this.ttl);
       this.logger.info(`Room ${roomId} is now WAITING`);
     }
+  }
 
-    if (userCount === 0) {
-      await this.deleteRoom(roomId);
-      this.logger.info(`Room ${roomId} deleted due to inactivity`);
+  async removeUserFromRoom(roomId: string, userId: number): Promise<void> {
+    this.logger.info('removeUserFromRoom', { roomId, userId });
+
+    if (await this.isUserHost(roomId, userId)) {
+      await this.handleHostRemoval(roomId, userId);
+      return;
     }
+
+    await this.handleRegularUserRemoval(roomId, userId);
   }
 
   private async removeUser(roomId: string, userId: number) {
@@ -198,6 +260,7 @@ export default class CustomRoomCache {
   }
 
   async disconnectedUser(userId: number): Promise<void> {
+    this.logger.info('disconnectedUser');
     const roomId = await this.getRoomIdByUserId(userId);
     if (!roomId) {
       return;
@@ -220,12 +283,18 @@ export default class CustomRoomCache {
     return exists === 1;
   }
 
-  private async getNextHostIdFromOrderedUsers(roomId: string) {
-    return await this.redisClient.lindex(this.getOrderedUsersKey(roomId), 0);
+  async getHostId(roomId: string): Promise<number> {
+    const roomKey = this.getRoomKey(roomId);
+    const hostId = await this.redisClient.hget(roomKey, 'hostId');
+    if (!hostId) {
+      this.logger.error(`Host ID not found for room ${roomId}`);
+      throw new Error('Host ID not found');
+    }
+    return Number(hostId);
   }
 
-  private async popFromOrderedUsers(roomId: string) {
-    await this.redisClient.lpop(this.getOrderedUsersKey(roomId));
+  private async getNextHostIdFromOrderedUsers(roomId: string) {
+    return await this.redisClient.lindex(this.getOrderedUsersKey(roomId), 0);
   }
 
   async changeRoomHost(roomId: string, newHostId: number): Promise<void> {

@@ -39,3 +39,26 @@ export const customStartSchema = z.object({
   roomId: z.string(),
   tournamentSize: tournamentSizeSchema,
 });
+
+export const inviteMessageSchema = z.object({
+  roomId: z.string(),
+  hostId: z.number(),
+  hostName: z.string(),
+  hostAvatarUrl: z.string().url(),
+});
+
+export type InviteMessageType = TypeOf<typeof inviteMessageSchema>;
+
+export const roomUpdateUserSchema = z.object({
+  id: z.number(),
+  nickname: z.string(),
+  avatarUrl: z.string().url(),
+  isHost: z.boolean(),
+});
+export type RoomUpdateUserType = TypeOf<typeof roomUpdateUserSchema>;
+
+export const roomUpdateSchema = z.object({
+  roomId: z.string(),
+  users: z.array(roomUpdateUserSchema),
+});
+export type RoomUpdateType = TypeOf<typeof roomUpdateSchema>;
