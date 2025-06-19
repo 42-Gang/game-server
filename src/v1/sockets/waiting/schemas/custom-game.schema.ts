@@ -42,6 +42,7 @@ export const customStartSchema = z.object({
 
 export const inviteMessageSchema = z.object({
   roomId: z.string(),
+  tournamentSize: tournamentSizeSchema,
   hostId: z.number(),
   hostName: z.string(),
   hostAvatarUrl: z.string().url(),

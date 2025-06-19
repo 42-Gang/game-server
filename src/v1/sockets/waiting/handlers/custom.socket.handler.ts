@@ -19,6 +19,7 @@ import SocketCache from '../../../storage/cache/socket.cache.js';
 import { FastifyBaseLogger } from 'fastify';
 import UserServiceClient from '../../../client/user.service.client.js';
 import { tournamentRequestProducer } from '../../../kafka/producers/tournament.producer.js';
+import { tournamentSizeSchema } from '../schemas/tournament.schema.js';
 
 export default class CustomSocketHandler {
   constructor(
@@ -68,8 +69,10 @@ export default class CustomSocketHandler {
 
     const hostId = await this.customRoomCache.getHostId(message.roomId);
     const hostUser = await this.userServiceClient.getUserInfo(hostId);
+    const roomInfo = await this.customRoomCache.getRoomInfo(message.roomId);
     const response: InviteMessageType = {
       roomId: message.roomId,
+      tournamentSize: tournamentSizeSchema.parse(roomInfo.maxPlayers),
       hostId: hostUser.id,
       hostName: hostUser.nickname,
       hostAvatarUrl: hostUser.avatarUrl,
