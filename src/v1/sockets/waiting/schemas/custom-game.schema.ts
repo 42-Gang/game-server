@@ -37,7 +37,6 @@ export type customStartType = TypeOf<typeof customStartSchema>;
 
 export const customStartSchema = z.object({
   roomId: z.string(),
-  tournamentSize: tournamentSizeSchema,
 });
 
 export const inviteMessageSchema = z.object({
