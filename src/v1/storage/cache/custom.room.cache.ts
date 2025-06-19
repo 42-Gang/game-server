@@ -163,7 +163,7 @@ export default class CustomRoomCache {
     return currentHost === userId;
   }
 
-  async popOrderedUser(roomId: string): Promise<number> {
+  async popNextOrderedUser(roomId: string): Promise<number> {
     const orderedKey = this.getOrderedUsersKey(roomId);
     const userId = await this.redisClient.lpop(orderedKey);
     if (!userId) {
@@ -172,29 +172,29 @@ export default class CustomRoomCache {
     return Number(userId);
   }
 
-  async getOrderedUsers(roomId: string, index: number): Promise<number | null> {
+  async getOrderedUserAt(roomId: string, index: number): Promise<number | null> {
     const orderedKey = this.getOrderedUsersKey(roomId);
     const userId = await this.redisClient.lindex(orderedKey, index);
     return userId ? Number(userId) : null;
   }
 
   private async handleHostRemoval(roomId: string, userId: number) {
-    await this.popOrderedUser(roomId);
+    await this.popNextOrderedUser(roomId);
 
-    const newHostId = await this.getOrderedUsers(roomId, 0);
+    const newHostId = await this.getOrderedUserAt(roomId, 0);
     if (!newHostId) {
       this.logger.info(`No users left in room ${roomId}, deleting room`);
-      await this.finalizeEmptyRoom(roomId, userId);
+      await this.cleanupEmptyRoom(roomId, userId);
       return;
     }
 
     await this.changeRoomHost(roomId, Number(newHostId));
     this.logger.info(`Room ${roomId} host changed to ${newHostId}`);
-    await this.performCommonCleanup(roomId, userId);
-    await this.updateRoomStatus(roomId);
+    await this.cleanupUserEntries(roomId, userId);
+    await this.refreshRoomStatus(roomId);
   }
 
-  private async removeUserFromOrderedList(roomId: string, userId: number) {
+  private async removeFromOrderedList(roomId: string, userId: number) {
     const orderedKey = this.getOrderedUsersKey(roomId);
     const removedCount = await this.redisClient.lrem(orderedKey, 0, String(userId));
     if (removedCount === 0) {
@@ -204,23 +204,23 @@ export default class CustomRoomCache {
   }
 
   private async handleRegularUserRemoval(roomId: string, userId: number) {
-    await this.removeUserFromOrderedList(roomId, userId);
-    await this.performCommonCleanup(roomId, userId);
-    await this.updateRoomStatus(roomId);
+    await this.removeFromOrderedList(roomId, userId);
+    await this.cleanupUserEntries(roomId, userId);
+    await this.refreshRoomStatus(roomId);
   }
 
-  private async performCommonCleanup(roomId: string, userId: number) {
+  private async cleanupUserEntries(roomId: string, userId: number) {
     await this.removeUser(roomId, userId);
     await this.redisClient.srem(this.getInvitedKey(roomId), String(userId));
     await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
   }
 
-  private async finalizeEmptyRoom(roomId: string, userId: number) {
+  private async cleanupEmptyRoom(roomId: string, userId: number) {
     await this.deleteRoom(roomId);
     await this.redisClient.hdel(this.CUSTOM_USERS, String(userId));
   }
 
-  private async updateRoomStatus(roomId: string) {
+  private async refreshRoomStatus(roomId: string) {
     const userCount = await this.getNumberOfUsersInRoom(roomId);
     if (userCount === 0) {
       this.logger.info(`Room ${roomId} deleted due to inactivity`);
