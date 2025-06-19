@@ -44,7 +44,7 @@ export const inviteMessageSchema = z.object({
   roomId: z.string(),
   hostId: z.number(),
   hostName: z.string(),
-  hostAvatarUrl: z.string(),
+  hostAvatarUrl: z.string().url(),
 });
 
 export type InviteMessageType = TypeOf<typeof inviteMessageSchema>;
