@@ -68,8 +68,11 @@ export default class CustomSocketHandler {
     }
 
     const hostId = await this.customRoomCache.getHostId(message.roomId);
-    const hostUser = await this.userServiceClient.getUserInfo(hostId);
-    const roomInfo = await this.customRoomCache.getRoomInfo(message.roomId);
+    const [hostUser, roomInfo] = await Promise.all([
+      this.userServiceClient.getUserInfo(hostId),
+      this.customRoomCache.getRoomInfo(message.roomId),
+    ]);
+
     const response: InviteMessageType = {
       roomId: message.roomId,
       tournamentSize: tournamentSizeSchema.parse(roomInfo.maxPlayers),
