@@ -89,7 +89,20 @@ export default class CustomSocketHandler {
 
     const userIds = await this.customRoomCache.getUsersInRoom(message.roomId);
     const hostId = await this.customRoomCache.getHostId(message.roomId);
-    const users: RoomUpdateUserType[] = await Promise.all(
+    const users = await this.createRoomUserDetails(userIds, hostId);
+
+    const response = roomUpdateSchema.parse({
+      roomId: message.roomId,
+      users,
+    });
+    socket.to(`custom:${message.roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
+    socket.join(`custom:${message.roomId}`);
+
+    socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
+  }
+
+  private async createRoomUserDetails(userIds: number[], hostId: number) {
+    return Promise.all(
       userIds.map(async (userId) => {
         const user = await this.userServiceClient.getUserInfo(userId);
 
@@ -101,15 +114,6 @@ export default class CustomSocketHandler {
         };
       }),
     );
-
-    const response = roomUpdateSchema.parse({
-      roomId: message.roomId,
-      users,
-    });
-    socket.to(`custom:${message.roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
-    socket.join(`custom:${message.roomId}`);
-
-    socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
   }
 
   async startCustomRoom(socket: Socket, payload: customStartType) {
@@ -144,18 +148,7 @@ export default class CustomSocketHandler {
 
     const userIds = await this.customRoomCache.getUsersInRoom(roomId);
     const hostId = await this.customRoomCache.getHostId(roomId);
-    const users: RoomUpdateUserType[] = await Promise.all(
-      userIds.map(async (userId) => {
-        const user = await this.userServiceClient.getUserInfo(userId);
-
-        return {
-          id: user.id,
-          nickname: user.nickname,
-          avatarUrl: user.avatarUrl,
-          isHost: user.id === hostId,
-        };
-      }),
-    );
+    const users: RoomUpdateUserType[] = await this.createRoomUserDetails(userIds, hostId);
 
     const message = roomUpdateSchema.parse({
       roomId,
@@ -171,18 +164,7 @@ export default class CustomSocketHandler {
   private async broadcastRoomUpdate(roomId: string, socket: Socket) {
     const userIds = await this.customRoomCache.getUsersInRoom(roomId);
     const hostId = await this.customRoomCache.getHostId(roomId);
-    const users: RoomUpdateUserType[] = await Promise.all(
-      userIds.map(async (userId) => {
-        const user = await this.userServiceClient.getUserInfo(userId);
-
-        return {
-          id: user.id,
-          nickname: user.nickname,
-          avatarUrl: user.avatarUrl,
-          isHost: user.id === hostId,
-        };
-      }),
-    );
+    const users: RoomUpdateUserType[] = await this.createRoomUserDetails(userIds, hostId);
 
     const message = roomUpdateSchema.parse({
       roomId,
