@@ -19,6 +19,7 @@ import SocketCache from '../../../storage/cache/socket.cache.js';
 import { FastifyBaseLogger } from 'fastify';
 import UserServiceClient from '../../../client/user.service.client.js';
 import { tournamentRequestProducer } from '../../../kafka/producers/tournament.producer.js';
+import { tournamentSizeType } from '../schemas/tournament.schema.js';
 
 export default class CustomSocketHandler {
   constructor(
@@ -124,8 +125,9 @@ export default class CustomSocketHandler {
     }
 
     const userIds = await this.customRoomCache.getUsersInRoom(message.roomId);
+    const roomInfo = await this.customRoomCache.getRoomInfo(message.roomId);
     await tournamentRequestProducer({
-      size: message.tournamentSize,
+      size: roomInfo.maxPlayers as tournamentSizeType,
       mode: 'CUSTOM',
       players: userIds,
       timestamp: new Date().toISOString(),
