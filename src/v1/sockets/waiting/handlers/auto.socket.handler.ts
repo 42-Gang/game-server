@@ -38,7 +38,6 @@ export default class AutoSocketHandler {
     const user = await this.userServiceClient.getUserInfo(socket.data.userId);
 
     const response = roomUpdateSchema.parse({
-      roomId: '',
       users: [
         {
           id: user.id,
