@@ -53,7 +53,7 @@ export const roomUpdateUserSchema = z.object({
   id: z.number(),
   nickname: z.string(),
   avatarUrl: z.string().url(),
-  isHost: z.boolean(),
+  isHost: z.boolean().default(false),
 });
 export type RoomUpdateUserType = TypeOf<typeof roomUpdateUserSchema>;
 
