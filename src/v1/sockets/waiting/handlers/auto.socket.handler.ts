@@ -107,6 +107,7 @@ export default class AutoSocketHandler {
             return {
               id: 0,
               nickname: '???',
+              avatarUrl: 'https://null.com/null.png',
             };
           }
           return user;

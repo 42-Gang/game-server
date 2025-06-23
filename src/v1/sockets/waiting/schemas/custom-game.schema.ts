@@ -52,7 +52,7 @@ export type InviteMessageType = TypeOf<typeof inviteMessageSchema>;
 export const roomUpdateUserSchema = z.object({
   id: z.number(),
   nickname: z.string(),
-  avatarUrl: z.string().url().optional(),
+  avatarUrl: z.string().url(),
   isHost: z.boolean().default(false),
 });
 export type RoomUpdateUserType = TypeOf<typeof roomUpdateUserSchema>;
