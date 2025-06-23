@@ -141,14 +141,13 @@ export default class CustomSocketHandler {
 
   async leaveRoom(socket: Socket) {
     const roomId = await this.customRoomCache.getRoomIdByUserId(socket.data.userId);
-
     if (!roomId) {
-      this.logger.error(`User ${socket.data.userId} is not in any custom room`);
+      this.logger.info(`User ${socket.data.userId} is not in any custom room`);
       return;
     }
+
     await this.customRoomCache.removeUserFromRoom(roomId, socket.data.userId);
     socket.leave(`custom:${roomId}`);
-
     if (!(await this.customRoomCache.isRoomExists(roomId))) {
       return;
     }
@@ -162,10 +161,6 @@ export default class CustomSocketHandler {
       users,
     });
     socket.to(`custom:${roomId}`).emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, message);
-  }
-
-  async leaveCustomRoom(socket: Socket) {
-    await this.leaveRoom(socket);
   }
 
   private async broadcastRoomUpdate(roomId: string, socket: Socket) {

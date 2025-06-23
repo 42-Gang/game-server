@@ -47,7 +47,7 @@ function registerCustomEvents(
   );
   socket.on(
     WAITING_SOCKET_EVENTS.CUSTOM.LEAVE,
-    socketErrorHandler(socket, logger, () => handler.leaveCustomRoom(socket)),
+    socketErrorHandler(socket, logger, () => handler.leaveRoom(socket)),
   );
 }
 
