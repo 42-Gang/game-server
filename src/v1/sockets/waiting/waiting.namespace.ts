@@ -85,7 +85,9 @@ export function startWaitingNamespace(namespace: Namespace) {
         await autoSocketHandler.leaveAllAutoRooms(socket);
         await customSocketHandler.leaveRoom(socket);
       } catch (error) {
-        logger.error(`Error during disconnect: ${error instanceof Error ? error.message : error}`);
+        logger.error(
+          `Error during disconnect for socket ${socket.id} and user ${userId}: ${error instanceof Error ? error.message : error}`,
+        );
       }
     });
 
