@@ -68,4 +68,16 @@ export default class WaitingQueueCache {
     const users = await this.redisClient.lrange(key, 0, queueLength - 1);
     return users.includes(userId.toString());
   }
+
+  async getUsersInQueue(tournamentSize: number): Promise<number[]> {
+    const key = this.getQueueKey(tournamentSize);
+
+    const queueLength = await this.redisClient.llen(key);
+    if (queueLength === 0) {
+      return [];
+    }
+
+    const userIds = await this.redisClient.lrange(key, 0, queueLength - 1);
+    return userIds.map((id) => Number(id));
+  }
 }
