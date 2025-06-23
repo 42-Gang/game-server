@@ -94,8 +94,7 @@ export default class AutoSocketHandler {
   private async sendWaitingRoomUpdates(tournamentSize: number) {
     const userIds = await this.waitingQueueCache.getUsersInQueue(tournamentSize);
     if (userIds.length === 0) {
-      this.logger.error(`No users found in the waiting queue for size ${tournamentSize}`);
-      throw new Error(`No users found in the waiting queue for size ${tournamentSize}`);
+      return;
     }
 
     const userInfoPromises = userIds.map((userId) => this.userServiceClient.getUserInfo(userId));
