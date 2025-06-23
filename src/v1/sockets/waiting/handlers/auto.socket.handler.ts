@@ -1,5 +1,10 @@
 import { Socket } from 'socket.io';
-import { autoJoinSchema, autoJoinSchemaType } from '../schemas/auto-game.schema.js';
+import {
+  autoJoinSchema,
+  autoJoinSchemaType,
+  autoLeaveSchema,
+  autoLeaveSchemaType,
+} from '../schemas/auto-game.schema.js';
 import { tournamentRequestProducer } from '../../../kafka/producers/tournament.producer.js';
 import WaitingQueueCache from '../../../storage/cache/waiting.queue.cache.js';
 import { FastifyBaseLogger } from 'fastify';
@@ -36,7 +41,6 @@ export default class AutoSocketHandler {
     }
 
     const user = await this.userServiceClient.getUserInfo(socket.data.userId);
-
     const response = roomUpdateSchema.parse({
       users: [
         {
@@ -48,6 +52,29 @@ export default class AutoSocketHandler {
       ],
     });
     socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
+  }
+
+  async leaveAutoRoom(socket: Socket, payload: autoLeaveSchemaType) {
+    autoLeaveSchema.parse(payload);
+
+    const { tournamentSize } = payload;
+    const userId = socket.data.userId;
+
+    this.logger.info(`User ${userId} leaving waiting room for tournament size ${tournamentSize}`);
+
+    if (!(await this.waitingQueueCache.isUserInQueue(tournamentSize, userId))) {
+      this.logger.info(`User ${userId} is not in the waiting queue for size ${tournamentSize}`);
+      return;
+    }
+
+    await this.waitingQueueCache.removeUser(tournamentSize, userId);
+    this.logger.info(
+      `User ${userId} has been removed from the waiting queue for size ${tournamentSize}`,
+    );
+
+    socket.emit(WAITING_SOCKET_EVENTS.LEAVE_SUCCESS, {
+      message: `Successfully left the queue for ${tournamentSize} tournament`,
+    });
   }
 
   private async startTournament(tournamentSize: 2 | 4 | 8 | 16) {
