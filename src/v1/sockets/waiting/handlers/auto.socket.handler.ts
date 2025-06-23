@@ -60,8 +60,6 @@ export default class AutoSocketHandler {
     const { tournamentSize } = payload;
     const userId = socket.data.userId;
 
-    this.logger.info(`User ${userId} leaving waiting room for tournament size ${tournamentSize}`);
-
     if (!(await this.waitingQueueCache.isUserInQueue(tournamentSize, userId))) {
       this.logger.info(`User ${userId} is not in the waiting queue for size ${tournamentSize}`);
       return;
