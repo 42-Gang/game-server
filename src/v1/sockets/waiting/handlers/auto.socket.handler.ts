@@ -1,4 +1,4 @@
-import { Socket } from 'socket.io';
+import { Namespace, Socket } from 'socket.io';
 import {
   autoJoinSchema,
   autoJoinSchemaType,
@@ -12,12 +12,15 @@ import { roomUpdateSchema } from '../schemas/custom-game.schema.js';
 import { WAITING_SOCKET_EVENTS } from '../waiting.event.js';
 import UserServiceClient from '../../../client/user.service.client.js';
 import { tournamentSizeSchema } from '../schemas/tournament.schema.js';
+import SocketCache from '../../../storage/cache/socket.cache.js';
 
 export default class AutoSocketHandler {
   constructor(
     private readonly waitingQueueCache: WaitingQueueCache,
     private readonly logger: FastifyBaseLogger,
     private readonly userServiceClient: UserServiceClient,
+    private readonly socketCache: SocketCache,
+    private readonly waitingNamespace: Namespace,
   ) {}
 
   async joinAutoRoom(socket: Socket, payload: autoJoinSchemaType) {
@@ -39,20 +42,9 @@ export default class AutoSocketHandler {
     await this.waitingQueueCache.addUser(tournamentSize, socket.data.userId);
     if (await this.waitingQueueCache.isQueueReady(tournamentSize)) {
       await this.startTournament(tournamentSize);
+      return;
     }
-
-    const user = await this.userServiceClient.getUserInfo(socket.data.userId);
-    const response = roomUpdateSchema.parse({
-      users: [
-        {
-          id: user.id,
-          nickname: user.nickname,
-          avatarUrl: user.avatarUrl,
-          isHost: false,
-        },
-      ],
-    });
-    socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
+    await this.sendWaitingRoomUpdates(tournamentSize);
   }
 
   async leaveAutoRoom(socket: Socket, payload: autoLeaveSchemaType) {
@@ -74,6 +66,8 @@ export default class AutoSocketHandler {
     socket.emit(WAITING_SOCKET_EVENTS.LEAVE_SUCCESS, {
       message: `Successfully left the queue for ${tournamentSize} tournament`,
     });
+
+    await this.sendWaitingRoomUpdates(tournamentSize);
   }
 
   async leaveAllAutoRooms(socket: Socket) {
@@ -95,5 +89,55 @@ export default class AutoSocketHandler {
       timestamp: new Date().toISOString(),
     });
     this.logger.info(`Tournament request sent for size ${tournamentSize} with users: ${userIds}`);
+  }
+
+  private async sendWaitingRoomUpdates(tournamentSize: number) {
+    const userIds = await this.waitingQueueCache.getUsersInQueue(tournamentSize);
+    if (userIds.length === 0) {
+      return;
+    }
+
+    const userInfoPromises = userIds.map((userId) => this.userServiceClient.getUserInfo(userId));
+    const users = await Promise.all(userInfoPromises);
+
+    await Promise.all(
+      users.map(async (currentUser) => {
+        const maskedUsers = users.map((user) => {
+          if (currentUser.id !== user.id) {
+            return {
+              id: 0,
+              nickname: '???',
+              avatarUrl: 'https://null.com/null.png',
+            };
+          }
+          return user;
+        });
+        const response = roomUpdateSchema.parse({
+          users: maskedUsers,
+        });
+        const socket = await this.findSocketByUserId(currentUser.id);
+        socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
+      }),
+    );
+  }
+
+  private async findSocketByUserId(userId: number): Promise<Socket> {
+    const socketId = await this.socketCache.getSocketId({
+      namespace: 'waiting',
+      userId: userId,
+    });
+
+    if (!socketId) {
+      this.logger.error(`Socket ID not found for user ${userId}`);
+      throw new Error(`Socket ID not found for user ${userId}`);
+    }
+
+    const socket = this.waitingNamespace.sockets.get(socketId);
+    if (!socket) {
+      this.logger.error(`Socket not found for user ${userId} with ID ${socketId}`);
+      throw new Error(`Socket not found for user ${userId}`);
+    }
+
+    return socket;
   }
 }

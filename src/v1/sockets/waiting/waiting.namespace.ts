@@ -74,15 +74,21 @@ export function startWaitingNamespace(namespace: Namespace) {
     registerAutoEvents(socket, autoSocketHandler, logger);
     registerCustomEvents(socket, customSocketHandler, logger);
 
-    socket.on('disconnect', () => {
-      logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
-      socketCache.deleteSocketId({
-        namespace: 'waiting',
-        userId: userId,
-      });
+    socket.on('disconnect', async () => {
+      try {
+        logger.info(`🔴 [/waiting] Disconnected: ${socket.id}`);
+        await socketCache.deleteSocketId({
+          namespace: 'waiting',
+          userId: userId,
+        });
 
-      autoSocketHandler.leaveAllAutoRooms(socket);
-      customSocketHandler.leaveRoom(socket);
+        await autoSocketHandler.leaveAllAutoRooms(socket);
+        await customSocketHandler.leaveRoom(socket);
+      } catch (error) {
+        logger.error(
+          `Error during disconnect for socket ${socket.id} and user ${userId}: ${error instanceof Error ? error.message : error}`,
+        );
+      }
     });
 
     socket.on('error', (error: Error) => {
