@@ -4,6 +4,8 @@ export const WAITING_SOCKET_EVENTS = {
     LEAVE: 'auto-leave',
   },
 
+  LEAVE_SUCCESS: 'leave-success',
+
   CUSTOM: {
     CREATE: 'custom-create',
     JOIN: 'custom-join',
