@@ -100,22 +100,24 @@ export default class AutoSocketHandler {
     const userInfoPromises = userIds.map((userId) => this.userServiceClient.getUserInfo(userId));
     const users = await Promise.all(userInfoPromises);
 
-    for (const currentUser of users) {
-      const maskedUsers = users.map((user) => {
-        if (currentUser.id !== user.id) {
-          return {
-            id: 0,
-            nickname: '???',
-          };
-        }
-        return user;
-      });
-      const response = roomUpdateSchema.parse({
-        users: maskedUsers,
-      });
-      const socket = await this.findSocketByUserId(currentUser.id);
-      socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
-    }
+    await Promise.all(
+      users.map(async (currentUser) => {
+        const maskedUsers = users.map((user) => {
+          if (currentUser.id !== user.id) {
+            return {
+              id: 0,
+              nickname: '???',
+            };
+          }
+          return user;
+        });
+        const response = roomUpdateSchema.parse({
+          users: maskedUsers,
+        });
+        const socket = await this.findSocketByUserId(currentUser.id);
+        socket.emit(WAITING_SOCKET_EVENTS.WAITING_ROOM_UPDATE, response);
+      }),
+    );
   }
 
   private async findSocketByUserId(userId: number): Promise<Socket> {
