@@ -7,7 +7,6 @@ import { WAITING_SOCKET_EVENTS } from './waiting.event.js';
 import { FastifyBaseLogger } from 'fastify';
 import AutoSocketHandler from './handlers/auto.socket.handler.js';
 import CustomSocketHandler from './handlers/custom.socket.handler.js';
-import { tournamentSizeSchema } from './schemas/tournament.schema.js';
 
 function registerAutoEvents(socket: Socket, handler: AutoSocketHandler, logger: FastifyBaseLogger) {
   socket.on(
@@ -82,11 +81,7 @@ export function startWaitingNamespace(namespace: Namespace) {
         userId: userId,
       });
 
-      for (const tournamentSize of tournamentSizeSchema.options) {
-        autoSocketHandler.leaveAutoRoom(socket, {
-          tournamentSize: tournamentSize.value,
-        });
-      }
+      autoSocketHandler.leaveAllAutoRooms(socket);
       customSocketHandler.leaveRoom(socket);
     });
 

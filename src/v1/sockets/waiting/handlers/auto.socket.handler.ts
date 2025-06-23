@@ -11,6 +11,7 @@ import { FastifyBaseLogger } from 'fastify';
 import { roomUpdateSchema } from '../schemas/custom-game.schema.js';
 import { WAITING_SOCKET_EVENTS } from '../waiting.event.js';
 import UserServiceClient from '../../../client/user.service.client.js';
+import { tournamentSizeSchema } from '../schemas/tournament.schema.js';
 
 export default class AutoSocketHandler {
   constructor(
@@ -73,6 +74,16 @@ export default class AutoSocketHandler {
     socket.emit(WAITING_SOCKET_EVENTS.LEAVE_SUCCESS, {
       message: `Successfully left the queue for ${tournamentSize} tournament`,
     });
+  }
+
+  async leaveAllAutoRooms(socket: Socket) {
+    const leavePromises = tournamentSizeSchema.options.map((tournamentSize) =>
+      this.leaveAutoRoom(socket, {
+        tournamentSize: tournamentSize.value,
+      }),
+    );
+
+    await Promise.all(leavePromises);
   }
 
   private async startTournament(tournamentSize: 2 | 4 | 8 | 16) {
