@@ -58,7 +58,6 @@ export default class WaitingQueueCache {
   }
 
   async isUserInQueue(tournamentSize: number, userId: number): Promise<boolean> {
-    this.logger.info(`Checking if user ${userId} is in ${tournamentSize}size waiting queue`);
     const key = this.getQueueKey(tournamentSize);
 
     const queueLength = await this.redisClient.llen(key);

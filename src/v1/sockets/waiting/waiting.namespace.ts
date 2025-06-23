@@ -1,7 +1,7 @@
 import { Namespace, Socket } from 'socket.io';
 import { socketMiddleware } from '../utils/middleware.js';
 import { socketErrorHandler } from '../utils/errorHandler.js';
-import { autoJoinSchemaType } from './schemas/auto-game.schema.js';
+import { autoJoinSchemaType, autoLeaveSchemaType } from './schemas/auto-game.schema.js';
 import SocketCache from '../../storage/cache/socket.cache.js';
 import { WAITING_SOCKET_EVENTS } from './waiting.event.js';
 import { FastifyBaseLogger } from 'fastify';
@@ -13,6 +13,13 @@ function registerAutoEvents(socket: Socket, handler: AutoSocketHandler, logger: 
     WAITING_SOCKET_EVENTS.AUTO.JOIN,
     socketErrorHandler(socket, logger, (payload: autoJoinSchemaType) =>
       handler.joinAutoRoom(socket, payload),
+    ),
+  );
+
+  socket.on(
+    WAITING_SOCKET_EVENTS.AUTO.LEAVE,
+    socketErrorHandler(socket, logger, (payload: autoLeaveSchemaType) =>
+      handler.leaveAutoRoom(socket, payload),
     ),
   );
 }
@@ -40,7 +47,7 @@ function registerCustomEvents(
   );
   socket.on(
     WAITING_SOCKET_EVENTS.CUSTOM.LEAVE,
-    socketErrorHandler(socket, logger, () => handler.leaveCustomRoom(socket)),
+    socketErrorHandler(socket, logger, () => handler.leaveRoom(socket)),
   );
 }
 
@@ -73,6 +80,8 @@ export function startWaitingNamespace(namespace: Namespace) {
         namespace: 'waiting',
         userId: userId,
       });
+
+      autoSocketHandler.leaveAllAutoRooms(socket);
       customSocketHandler.leaveRoom(socket);
     });
 
