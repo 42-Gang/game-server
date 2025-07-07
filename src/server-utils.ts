@@ -18,7 +18,7 @@ export function getLoggerOptions() {
     transport: {
       target: 'pino-pretty',
       options: {
-        translateTime: 'HH:MM:ss Z',
+        translateTime: 'yyyy-mm-dd HH:MM:ss',
         ignore: 'pid,hostname',
       },
     },
