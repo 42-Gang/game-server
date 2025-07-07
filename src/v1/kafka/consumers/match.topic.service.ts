@@ -41,7 +41,12 @@ export default class MatchTopicService {
   async handleMatchResult(messageValue: HandleMatchResultType): Promise<void> {
     matchResultMessageSchema.parse(messageValue);
 
-    // TODO: 매치 결과 DB에 저장 및 다음 라운드 반영
+    await this.matchRepository.update(messageValue.matchId, {
+      player1Score: messageValue.score.player1,
+      player2Score: messageValue.score.player2,
+      winner: messageValue.winnerId,
+      status: 'FINISHED',
+    });
 
     const match = await this.matchRepository.findById(messageValue.matchId);
     if (!match) {
