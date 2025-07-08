@@ -13,19 +13,16 @@ export function createServer() {
 }
 
 export function getLoggerOptions() {
-  if (process.stdout.isTTY) {
-    return {
-      level: 'info',
-      transport: {
-        target: 'pino-pretty',
-        options: {
-          translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname',
-        },
+  return {
+    level: 'info',
+    transport: {
+      target: process.env.NODE_ENV === 'dev' ? 'pino-pretty' : 'pino',
+      options: {
+        translateTime: 'yyyy-mm-dd HH:MM:ss',
+        ignore: 'pid,hostname',
       },
-    };
-  }
-  return { level: process.env.FASTIFY_LOG_LEVEL || 'error' };
+    },
+  };
 }
 
 export async function startServer(server: FastifyInstance) {

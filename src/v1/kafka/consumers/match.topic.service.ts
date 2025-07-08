@@ -5,6 +5,9 @@ import { TOURNAMENT_SOCKET_EVENTS } from '../../sockets/tournament/tournament.ev
 import TournamentPlayerCache from '../../storage/cache/tournament/tournament.player.cache.js';
 import TournamentMatchCache from '../../storage/cache/tournament/tournament.match.cache.js';
 import TournamentMetaCache from '../../storage/cache/tournament/tournament.meta.cache.js';
+import { HandleMatchResultType, matchResultMessageSchema } from '../schemas/match.topic.schema.js';
+import MatchRepository from '../../storage/database/prisma/match.repository.js';
+import { FastifyBaseLogger } from 'fastify';
 
 const handleMatchCreatedInputSchema = z.object({
   tournamentId: z.number(),
@@ -15,21 +18,6 @@ const handleMatchCreatedInputSchema = z.object({
 });
 type HandleMatchCreatedInputType = TypeOf<typeof handleMatchCreatedInputSchema>;
 
-const handleMatchResultInputSchema = z.object({
-  tournamentId: z.number(),
-  matchId: z.number(),
-  player1Id: z.number(),
-  player2Id: z.number(),
-  score: z.object({
-    player1: z.number(),
-    player2: z.number(),
-  }),
-  winnerId: z.number(),
-  loserId: z.number(),
-  round: z.number(),
-});
-type HandleMatchResultInputType = TypeOf<typeof handleMatchResultInputSchema>;
-
 export default class MatchTopicService {
   constructor(
     private readonly tournamentNamespace: Namespace,
@@ -37,6 +25,8 @@ export default class MatchTopicService {
     private readonly tournamentPlayerCache: TournamentPlayerCache,
     private readonly tournamentMatchCache: TournamentMatchCache,
     private readonly tournamentMetaCache: TournamentMetaCache,
+    private readonly matchRepository: MatchRepository,
+    private readonly logger: FastifyBaseLogger,
   ) {}
 
   async handleMatchCreated(messageValue: HandleMatchCreatedInputType): Promise<void> {
@@ -48,36 +38,39 @@ export default class MatchTopicService {
     }
   }
 
-  async handleMatchResult(messageValue: HandleMatchResultInputType): Promise<void> {
-    handleMatchResultInputSchema.parse(messageValue);
+  async handleMatchResult(messageValue: HandleMatchResultType): Promise<void> {
+    matchResultMessageSchema.parse(messageValue);
 
-    // TODO: 매치 결과 DB에 저장 및 다음 라운드 반영
+    const match = await this.matchRepository.update(messageValue.matchId, {
+      player1Score: messageValue.score.player1,
+      player2Score: messageValue.score.player2,
+      winner: messageValue.winnerId,
+      status: 'FINISHED',
+    });
+    const tournamentId = match.tournamentId;
 
-    await this.tournamentPlayerCache.movePlayerToEliminated(
-      messageValue.tournamentId,
-      messageValue.loserId,
-    );
+    await this.tournamentPlayerCache.movePlayerToEliminated(tournamentId, messageValue.loserId);
 
     await this.tournamentMatchCache.removeMatchInRound(
-      messageValue.tournamentId,
-      messageValue.round,
+      tournamentId,
+      match.round,
       messageValue.matchId,
     );
 
-    if (
-      await this.tournamentMatchCache.isEmptyInRound(messageValue.tournamentId, messageValue.round)
-    ) {
-      await this.tournamentMetaCache.moveToNextRound(messageValue.tournamentId);
+    if (await this.tournamentMatchCache.isEmptyInRound(tournamentId, match.round)) {
+      await this.tournamentMetaCache.moveToNextRound(tournamentId);
     }
 
     this.tournamentNamespace
-      .to(`tournament:${messageValue.tournamentId}`)
+      .to(`tournament:${tournamentId}`)
       .emit(TOURNAMENT_SOCKET_EVENTS.GAME_RESULT, messageValue);
+    this.logger.info(`${tournamentId} tournament match result is sent:`, messageValue);
 
-    if (await this.tournamentMetaCache.isFinished(messageValue.tournamentId)) {
+    if (await this.tournamentMetaCache.isFinished(tournamentId)) {
       this.tournamentNamespace
-        .to(`tournament:${messageValue.tournamentId}`)
+        .to(`tournament:${tournamentId}`)
         .emit(TOURNAMENT_SOCKET_EVENTS.FINISHED);
+      this.logger.info(`Tournament ${tournamentId} has finished.`);
     }
   }
 
