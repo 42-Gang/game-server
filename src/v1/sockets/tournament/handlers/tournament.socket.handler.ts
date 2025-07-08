@@ -113,24 +113,31 @@ export default class TournamentSocketHandler {
   }
 
   async sendBracket(socket: Socket) {
-    const userId = parseInt(socket.data.userId);
-    const tournamentId = parseInt(socket.data.tournamentId);
+    try {
+      const userId = parseInt(socket.data.userId);
+      const tournamentId = parseInt(socket.data.tournamentId);
 
-    const matches = await this.matchRepository.findManyByTournamentId(tournamentId);
+      const matches = await this.matchRepository.findManyByTournamentId(tournamentId);
 
-    const bracket = matches.map(
-      (match): MatchType => ({
-        matchId: match.id,
-        player1Id: match.player1Id,
-        player2Id: match.player2Id,
-        player1Score: match.player1Score,
-        player2Score: match.player2Score,
-        round: match.round,
-        status: match.status,
-      }),
-    );
-    socket.emit(TOURNAMENT_SOCKET_EVENTS.BRACKET_UPDATED, bracketSchema.parse(bracket));
-    this.logger.info(`Bracket sent to user ${userId} for tournament ${tournamentId}`, bracket);
+      const bracket = matches.map(
+        (match): MatchType => ({
+          matchId: match.id,
+          player1Id: match.player1Id,
+          player2Id: match.player2Id,
+          player1Score: match.player1Score,
+          player2Score: match.player2Score,
+          round: match.round,
+          status: match.status,
+        }),
+      );
+      socket.emit(TOURNAMENT_SOCKET_EVENTS.BRACKET_UPDATED, bracketSchema.parse(bracket));
+      this.logger.info(`Bracket sent to user ${userId} for tournament ${tournamentId}`, bracket);
+    } catch (error) {
+      this.logger.error(
+        `Error sending bracket to user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      socket.emit('error', { message: 'Failed to update bracket' });
+    }
   }
 
   private broadcastAllUsersReady(tournamentId: number) {
