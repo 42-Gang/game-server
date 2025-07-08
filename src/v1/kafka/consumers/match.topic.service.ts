@@ -41,17 +41,12 @@ export default class MatchTopicService {
   async handleMatchResult(messageValue: HandleMatchResultType): Promise<void> {
     matchResultMessageSchema.parse(messageValue);
 
-    await this.matchRepository.update(messageValue.matchId, {
+    const match = await this.matchRepository.update(messageValue.matchId, {
       player1Score: messageValue.score.player1,
       player2Score: messageValue.score.player2,
       winner: messageValue.winnerId,
       status: 'FINISHED',
     });
-
-    const match = await this.matchRepository.findById(messageValue.matchId);
-    if (!match) {
-      throw new Error(`Match with ID ${messageValue.matchId} not found`);
-    }
     const tournamentId = match.tournamentId;
 
     await this.tournamentPlayerCache.movePlayerToEliminated(tournamentId, messageValue.loserId);
