@@ -5,6 +5,7 @@ export const TOURNAMENT_SOCKET_EVENTS = {
   MATCH_INFO: 'match-info',
   GAME_RESULT: 'game-result',
   FINISHED: 'finished',
+  BRACKET_UPDATED: 'bracket-updated',
 };
 
 export const playerCacheSocketSchema = z.object({
