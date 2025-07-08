@@ -25,6 +25,7 @@ export function startTournamentNamespace(namespace: Namespace) {
       socketId: socket.id,
       userId: userId,
     });
+    await tournamentSocketHandler.sendBracket(socket);
     socket.join(`tournament:${tournamentId}`);
 
     logger.info(`🟢 [/tournament] Connected: ${socket.id} ${userId}`);

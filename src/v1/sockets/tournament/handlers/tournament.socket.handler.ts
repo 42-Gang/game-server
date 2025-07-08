@@ -15,6 +15,8 @@ import TournamentMatchCache from '../../../storage/cache/tournament/tournament.m
 import TournamentMetaCache from '../../../storage/cache/tournament/tournament.meta.cache.js';
 import MatchServerCache from '../../../storage/cache/match-server.cache.js';
 import { matchRequestProducer } from '../../../kafka/producers/match.producer.js';
+import MatchRepository from '../../../storage/database/prisma/match.repository.js';
+import { bracketSchema, MatchType } from '../schemas/bracket.schema.js';
 
 export default class TournamentSocketHandler {
   constructor(
@@ -24,6 +26,7 @@ export default class TournamentSocketHandler {
     private readonly tournamentMetaCache: TournamentMetaCache,
     private readonly tournamentNamespace: Namespace,
     private readonly matchServerCache: MatchServerCache,
+    private readonly matchRepository: MatchRepository,
     private readonly playerCache: PlayerCache,
     private readonly logger: FastifyBaseLogger,
   ) {}
@@ -107,6 +110,27 @@ export default class TournamentSocketHandler {
         matchServerName: matchServer.serverName,
       });
     }
+  }
+
+  async sendBracket(socket: Socket) {
+    const userId = parseInt(socket.data.userId);
+    const tournamentId = parseInt(socket.data.tournamentId);
+
+    const matches = await this.matchRepository.findManyByTournamentId(tournamentId);
+
+    const bracket = matches.map(
+      (match): MatchType => ({
+        matchId: match.id,
+        player1Id: match.player1Id,
+        player2Id: match.player2Id,
+        player1Score: match.player1Score,
+        player2Score: match.player2Score,
+        round: match.round,
+        status: match.status,
+      }),
+    );
+    socket.emit(TOURNAMENT_SOCKET_EVENTS.BRACKET_UPDATED, bracketSchema.parse(bracket));
+    this.logger.info(`Bracket sent to user ${userId} for tournament ${tournamentId}`, bracket);
   }
 
   private broadcastAllUsersReady(tournamentId: number) {
