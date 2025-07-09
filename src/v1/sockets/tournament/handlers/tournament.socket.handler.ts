@@ -133,9 +133,7 @@ export default class TournamentSocketHandler {
       socket.emit(TOURNAMENT_SOCKET_EVENTS.BRACKET_UPDATED, bracketSchema.parse(bracket));
       this.logger.info(`Bracket sent to user ${userId} for tournament ${tournamentId}`, bracket);
     } catch (error) {
-      this.logger.error(
-        `Error sending bracket to user: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      this.logger.error(error, 'Failed to send bracket');
       socket.emit('error', { message: 'Failed to update bracket' });
     }
   }
