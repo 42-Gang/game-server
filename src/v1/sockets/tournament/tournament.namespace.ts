@@ -33,11 +33,7 @@ export function startTournamentNamespace(namespace: Namespace) {
 
       logger.info(`🟢 [/tournament] Connected: ${socket.id} ${userId}`);
     } catch (error) {
-      logger.error(
-        `Error during connection for socket ${socket.id} and user ${userId}: ${
-          error instanceof Error ? error.message : error
-        }`,
-      );
+      logger.error(error, `Error setting socket ID for user ${userId} in tournament namespace`);
       return;
     }
 
